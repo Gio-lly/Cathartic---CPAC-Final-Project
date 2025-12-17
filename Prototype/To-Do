@@ -1,0 +1,11 @@
+VISUAL
+- box text adattabile a lunghezza testo (font: Source Code Pro)
+- Domanda nel box se passa in neutro (ex: "A cosa stai pensando?")
+- Disgregazione testo animazione
+- Capire che visual fare (particelle, boids, altro?)
+- Controllare visual con musica e emozioni
+
+SOUND 
+- GoEmotions per avere vettore emozioni
+- Ricercare modello pretrained VAE
+- Generare musica
