@@ -1,13 +1,13 @@
 ArrayList<Particle> particles = new ArrayList<Particle>();
-String typing = ""; 
-String savedText = ""; 
+String typing = "";
+String savedText = "";
 PGraphics pg;
 float textSizeValue = 120; // Grandezza fissa per entrambi
 
 void setup() {
   size(1000, 500);
   pg = createGraphics(width, height);
-  createTextParticles(savedText);
+  //createTextParticles(savedText);
 }
 
 void draw() {
@@ -28,13 +28,19 @@ void draw() {
 }
 
 void keyPressed() {
-  if (key == RETURN || key == ENTER) {
-    if (typing.length() > 0) {
-      savedText = typing;
-      createTextParticles(savedText);
-      typing = ""; // Svuota l'input dopo l'invio
-    }
-  } else if (key == BACKSPACE) {
+    if (key == RETURN || key == ENTER) {
+      if (typing.length() > 0) {
+        savedText = typing;
+        createTextParticles(savedText);
+        typing = "";
+  
+        // Facciamo in modo che inizino a driftare
+        for (Particle p : particles) p.isReturning = false;
+  
+        // Usiamo un timer (o thread) per dirle di tornare dopo 500ms
+        thread("recallParticles");
+      }
+    } else if (key == BACKSPACE) {
     if (typing.length() > 0) {
       typing = typing.substring(0, typing.length() - 1);
     }
@@ -44,9 +50,17 @@ void keyPressed() {
   }
 }
 
+
+
+void recallParticles() {
+  delay(1000); // Restano in drift per 1 secondo
+  for (Particle p : particles) {
+    p.isReturning = true;
+  }
+}
 void createTextParticles(String t) {
-  particles.clear(); 
-  
+  particles.clear();
+
   pg.beginDraw();
   pg.background(0);
   pg.fill(255);
