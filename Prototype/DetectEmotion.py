@@ -2,6 +2,8 @@
 from transformers import pipeline
 import torch
 import pandas as pd
+from pythonosc import dispatcher
+from pythonosc import osc_server
 
 # 2. Load the pre-trained GoEmotions model
 MODEL_NAME = "SamLowe/roberta-base-go_emotions"
@@ -46,16 +48,27 @@ def analyze_emotions(texts, classifier):
         
     return results
 
+def osc_text_handler(address, *args):
+    text = args[0]
+    print("Received text:", text)
+
+    # ANALISI EMOZIONI
+    results = analyze_emotions(text, emotion_classifier)
+
+    df_results = pd.DataFrame(results)
+    print(df_results)
+
+
 # 3. Example usage
 if __name__ == "__main__":
-    sample_texts = [
-        "I am so happy today!",
-        "This is the worst day ever.",
-        "I feel nothing."
-    ]
-    
-    emotion_results = analyze_emotions(sample_texts, emotion_classifier)
-    
-    # Convert results to a DataFrame for better visualization
-    df_results = pd.DataFrame(emotion_results)
-    print(df_results)
+    disp = dispatcher.Dispatcher()
+    disp.map("/text", osc_text_handler)
+
+    server = osc_server.ThreadingOSCUDPServer(
+        ("127.0.0.1", 12001),
+        disp
+    )
+
+    print("Python OSC server listening on port 12001")
+    server.serve_forever()
+
