@@ -2,65 +2,90 @@ ArrayList<Particle> particles = new ArrayList<Particle>();
 String typing = "";
 String savedText = "";
 PGraphics pg;
-float textSizeValue = 120; // Grandezza fissa per entrambi
+PGraphics trailLayer; 
+
+float textSizeValue = 120;
+
+PVector vortexCenter; 
+color liquidColor = color(141, 200, 255); 
+color textColor = color(255); 
 
 void setup() {
-  size(1000, 500);
-  pg = createGraphics(width, height);
-  //createTextParticles(savedText);
+  size(1000, 1000, P2D); 
+  
+  // 1. Inizializziamo lo sfondo nero
+  background(0);
+  
+  pg = createGraphics(width, height, P2D);
+  
+  trailLayer = createGraphics(width, height, P2D);
+  trailLayer.beginDraw();
+  trailLayer.background(0); 
+  trailLayer.endDraw();
+  
+  vortexCenter = new PVector(width/2, height/2);
 }
 
 void draw() {
-  background(0);
+  // --- FASE 1: GESTIONE SFONDO E SCIE (Modalità BLEND) ---
+  blendMode(BLEND); // Reset del blend mode globale
+  
+  trailLayer.beginDraw();
+  trailLayer.blendMode(BLEND); // FONDAMENTALE: Le scie si sovrappongono normalmente
+  
+  // 1. Fade out: crea un velo nero trasparente per far asciugare la pittura nel tempo
+  trailLayer.noStroke();
+  trailLayer.fill(0, 3); // Se metti 0 al posto di 10, la pittura non scompare mai
+  trailLayer.rect(0, 0, width, height);
+  
+  // 2. Dipingiamo le scie sul layer
+  for (Particle p : particles) {
+    p.update(); // Aggiorniamo la fisica qui
+    p.paintBackground(trailLayer); // Disegniamo la scia
+  }
+  trailLayer.endDraw();
+  
+  // 3. Disegniamo il layer completo sullo schermo
+  image(trailLayer, 0, 0);
 
-  // TESTO IN INPUT: centrato e stessa grandezza del buffer
-  fill(255, 50); // Leggermente trasparente per non coprire le particelle
+  // --- FASE 2: TESTO PREVIEW ---
+  fill(255); 
   textSize(textSizeValue);
   textAlign(CENTER, CENTER);
   text(typing, width/2, height/2);
 
-  // AGGIORNAMENTO PARTICELLE
-  for (int i = particles.size()-1; i >= 0; i--) {
-    Particle p = particles.get(i);
-    p.update();
-    p.display();
+  // --- FASE 3: PARTICELLE (Modalità ADD per effetto glow) ---
+  blendMode(ADD); 
+  for (Particle p : particles) {
+    p.display(); 
   }
 }
 
 void keyPressed() {
-    if (key == RETURN || key == ENTER) {
-      if (typing.length() > 0) {
-        savedText = typing;
-        createTextParticles(savedText);
-        typing = "";
-  
-        // Facciamo in modo che inizino a driftare
-        for (Particle p : particles) p.isReturning = false;
-  
-        // Usiamo un timer (o thread) per dirle di tornare dopo 500ms
-        thread("recallParticles");
-      }
-    } else if (key == BACKSPACE) {
+  if (key == RETURN || key == ENTER) {
+    if (typing.length() > 0) {
+      savedText = typing;
+      
+      // Quando premi invio, puliamo il foglio con il nero
+      trailLayer.beginDraw();
+      trailLayer.blendMode(BLEND); 
+      trailLayer.background(0);
+      trailLayer.endDraw();
+      
+      createTextParticles(savedText);
+      typing = "";
+      for (Particle p : particles) p.isReturning = false;
+    }
+  } else if (key == BACKSPACE) {
     if (typing.length() > 0) {
       typing = typing.substring(0, typing.length() - 1);
     }
   } else if (keyCode != SHIFT && keyCode != CONTROL && keyCode != ALT) {
-    particles.clear();
     typing += key;
   }
 }
 
-
-
-void recallParticles() {
-  delay(1000); // Restano in drift per 1 secondo
-  for (Particle p : particles) {
-    p.isReturning = true;
-  }
-}
 void createTextParticles(String t) {
-  particles.clear();
-
   pg.beginDraw();
   pg.background(0);
   pg.fill(255);
@@ -70,10 +95,13 @@ void createTextParticles(String t) {
   pg.endDraw();
 
   pg.loadPixels();
-  for (int x = 0; x < pg.width; x += 3) {
-    for (int y = 0; y < pg.height; y += 3) {
+  
+  int step = 4; 
+  
+  for (int x = 0; x < pg.width; x += step) { 
+    for (int y = 0; y < pg.height; y += step) {
       int index = x + y * pg.width;
-      if (brightness(pg.pixels[index]) > 128) {
+      if (index < pg.pixels.length && brightness(pg.pixels[index]) > 128) {
         particles.add(new Particle(x, y));
       }
     }
