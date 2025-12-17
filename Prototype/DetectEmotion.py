@@ -1,9 +1,9 @@
-# 2. Import required packages
+# 1. Import required packages
 from transformers import pipeline
 import torch
 import pandas as pd
 
-# 3. Load the pre-trained GoEmotions model
+# 2. Load the pre-trained GoEmotions model
 MODEL_NAME = "SamLowe/roberta-base-go_emotions"
 
 emotion_classifier = pipeline(
@@ -46,7 +46,7 @@ def analyze_emotions(texts, classifier):
         
     return results
 
-# 4. Example usage
+# 3. Example usage
 if __name__ == "__main__":
     sample_texts = [
         "I am so happy today!",
