@@ -75,7 +75,7 @@ class Particle {
   PVector tangent = new PVector(-toCenter.y, toCenter.x);
 
   float n = noise(pos.x * 0.003, pos.y * 0.003, frameCount * 0.003);
-  PVector noiseForce = PVector.fromAngle(n * TWO_PI).mult(0.9);
+  PVector noiseForce = PVector.fromAngle(n * TWO_PI).mult(1.2);
 
   float audioEnergy = constrain(audioLevel / 80.0, 0, 1);
 
