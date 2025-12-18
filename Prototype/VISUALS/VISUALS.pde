@@ -27,8 +27,8 @@ String typing = "";
 String savedText = "";
 PGraphics pg;
 
-
-float textSizeValue = 120;
+PFont sourceCodePro;
+float textSizeValue = 50;
 
 PVector vortexCenter;
 color liquidColor = color(141, 200, 255);
@@ -39,14 +39,19 @@ float pulsePhase = 0;
 
 float audioLevel = 0;
 
+
 void setup() {
-  size(1000, 1000, P2D);
+  size(1430, 800, P2D);
+  // pixelDensity(2); per aumentare risoluzione, ma buggato per colpa di pg. Da fixare.
+  frameRate(60);
+  
+  sourceCodePro = createFont("SourceCodePro-Regular.ttf", textSizeValue, true);
+  textFont(sourceCodePro);
 
   // 1. Inizializziamo lo sfondo nero
   background(0);
 
   pg = createGraphics(width, height, P2D);
-
 
   vortexCenter = new PVector(width/2, height/2);
 
@@ -64,9 +69,7 @@ void draw() {
   blendMode(BLEND); // Reset del blend mode globale
   noStroke();
 
-  background(0);
-  fill(0,10);
-  rect(0, 0, width, height);
+  background(5);
   
   for (Particle p : particles ) {
     p.update();
@@ -75,10 +78,11 @@ void draw() {
 
 
   // --- FASE 2: TESTO PREVIEW ---
-  fill(255);
+  fill(250);
   textSize(textSizeValue);
   textAlign(CENTER, height/3);
-  text(typing, width/2, height/2);
+  //rectMode(CENTER);
+  text(typing,0,height/2,width, height);
 
   // --- FASE 3: PARTICELLE (Modalità ADD per effetto glow) ---
   blendMode(ADD);

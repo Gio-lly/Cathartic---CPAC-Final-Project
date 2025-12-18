@@ -1,11 +1,13 @@
 VISUAL
-- box text adattabile a lunghezza testo (font: Source Code Pro)
-- Domanda nel box se passa in neutro (ex: "A cosa stai pensando?")
-- Disgregazione testo animazione
-- Capire che visual fare (particelle, boids, altro?)
-- Controllare visual con musica e emozioni
+- box text adattabile a lunghezza testo (font: Source Code Pro) X
+- Domanda nel box se passa in neutro (ex: "A cosa stai pensando?") X
+- Disgregazione testo animazione V
+- Capire che visual fare (particelle, boids, altro?) V
+- Controllare visual con musica e emozioni X
 
 SOUND 
-- GoEmotions per avere vettore emozioni
-- Ricercare modello pretrained VAE
-- Generare musica
+- GoEmotions per avere vettore emozioni V
+- Prototipo hardcoded Max Ableton V
+- Rave ?
+- Ricercare modello pretrained VAE X
+- Generare musica X
