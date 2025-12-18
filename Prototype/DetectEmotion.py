@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 from pythonosc import dispatcher
 from pythonosc import osc_server
+from pythonosc import udp_client
 
 # 2. Load the pre-trained GoEmotions model
 MODEL_NAME = "SamLowe/roberta-base-go_emotions"
@@ -57,6 +58,17 @@ def osc_text_handler(address, *args):
 
     df_results = pd.DataFrame(results)
     print(df_results)
+    
+    # Send emotions as OSC messages
+    client = udp_client.SimpleUDPClient("127.0.0.1", 12002)
+    
+    # Extract emotions from results (skip the 'text' key)
+    emotions = {k: v for k, v in results[0].items() if k != 'text'}
+    
+    for emotion_name, emotion_value in emotions.items():
+        osc_path = f"/emotion/{emotion_name}"
+        client.send_message(osc_path, emotion_value)
+        print(f"Sent OSC: {osc_path} = {emotion_value}")
 
 
 # 3. Example usage
