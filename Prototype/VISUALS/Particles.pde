@@ -8,7 +8,7 @@ class Particle {
 
   color col;
   float dissolveCounter = 0;
-  float dissolveRate = random(0.002, 0.005); 
+  float dissolveRate = random(0.02, 0.05); 
 
   Particle(float x, float y) {
     pos = new PVector(x, y);
@@ -39,9 +39,9 @@ class Particle {
       PVector turbulence = PVector.fromAngle(noiseAngle);
       turbulence.mult(0.93); 
 
-      PVector fluidForce = tangent.copy().mult(0.92);
+      PVector fluidForce = tangent.copy().mult(0.7);
       fluidForce.add(turbulence);
-      fluidForce.add(toCenter.mult(0.15)); 
+      fluidForce.add(toCenter.mult(0.4)); 
       
       fluidForce.setMag(maxSpeed);
       PVector steer = PVector.sub(fluidForce, vel);
@@ -53,7 +53,7 @@ class Particle {
     }
 
     vel.add(acc);
-    vel.limit(maxSpeed * 1.5); 
+    vel.limit(maxSpeed ); 
     pos.add(vel);
     acc.mult(0);
     vel.mult(0.97); 
@@ -68,8 +68,8 @@ class Particle {
       // Qui definiamo l'effetto "Tempera"
       // Alpha più alto (50) per coprire di più. 
       // Se vuoi un effetto più "solido", aumenta 50 a 100 o 255.
-      layer.stroke(r, g, b, 255); 
-      layer.strokeWeight(random(2, 12)); // Pennellata variabile
+      layer.stroke(r, g, b, 10); 
+      layer.strokeWeight(map(audioLevel,0,127,5,20)); // Pennellata variabile
       layer.point(pos.x, pos.y);
     }
   }
@@ -79,7 +79,7 @@ class Particle {
     float alpha = map(dissolveCounter, 0, 1, 170, 0);
     stroke(col, alpha);
     // Dimensione che cambia
-    float size = map(dissolveCounter, 0, 1, 4,2 );
+    float size = map(audioLevel, 0, 127, 5,10 );
     strokeWeight(size);
     point(pos.x, pos.y);
   }

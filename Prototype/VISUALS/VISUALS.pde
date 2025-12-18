@@ -1,3 +1,20 @@
+import oscP5.*; 
+import netP5.*; 
+OscP5 oscTextSender; 
+OscP5 audioDataReceiver;
+NetAddress pythonLocation; 
+
+String[] questions = 
+{ "What are you afraid of?", 
+"What do you wish you had said?", 
+"What are you holding back?", 
+"What do you want to forget?", 
+"What stays with you?", 
+"Luca" }; 
+ArrayList<VisualQuestion> activeQuestions = new 
+ArrayList<VisualQuestion>(); 
+int lastTypingTime; // timestamp ultimo tasto premuto 
+int idleDelay = 10000; // 10 secondi 
 ArrayList<Particle> particles = new ArrayList<Particle>();
 String typing = "";
 String savedText = "";
@@ -9,6 +26,11 @@ float textSizeValue = 120;
 PVector vortexCenter; 
 color liquidColor = color(141, 200, 255); 
 color textColor = color(255); 
+boolean showRestart = false;
+float restartAlpha = 0;
+float pulsePhase = 0;
+
+float audioLevel = 0;
 
 void setup() {
   size(1000, 1000, P2D); 
@@ -24,6 +46,14 @@ void setup() {
   trailLayer.endDraw();
   
   vortexCenter = new PVector(width/2, height/2);
+  
+  //OSC SETUP
+  oscTextSender = new OscP5(this, 12000); // porta locale (ricezione eventuale)
+  
+  audioDataReceiver = new OscP5(this,12003); //porta di ascolto da max !!!
+  
+  
+  pythonLocation = new NetAddress("127.0.0.1", 12001); // python
 }
 
 void draw() {
@@ -65,7 +95,10 @@ void keyPressed() {
   if (key == RETURN || key == ENTER) {
     if (typing.length() > 0) {
       savedText = typing;
-      
+       OscMessage
+        msg = new OscMessage("/text");
+      msg.add(savedText);
+      oscTextSender.send(msg, pythonLocation);
       // Quando premi invio, puliamo il foglio con il nero
       trailLayer.beginDraw();
       trailLayer.blendMode(BLEND); 
@@ -104,6 +137,23 @@ void createTextParticles(String t) {
       if (index < pg.pixels.length && brightness(pg.pixels[index]) > 128) {
         particles.add(new Particle(x, y));
       }
+    }
+  }
+}
+
+/* Questo metodo viene chiamato automaticamente ogni volta che arriva un messaggio */
+void oscEvent(OscMessage theOscMessage) {
+ 
+  if (theOscMessage.checkAddrPattern("/audiodata/level")) {
+    
+    // 2. Controlla se il messaggio contiene un valore float ("f")
+    if (theOscMessage.checkTypetag("f")) {
+      audioLevel = theOscMessage.get(0).floatValue();
+      println(audioLevel);
+    } 
+    // Opzionale: se il valore fosse un intero ("i")
+    else if (theOscMessage.checkTypetag("i")) {
+      audioLevel = (float)theOscMessage.get(0).intValue();
     }
   }
 }
