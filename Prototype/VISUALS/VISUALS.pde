@@ -1,5 +1,6 @@
 import oscP5.*;
 import netP5.*;
+import processing.sound.*;
 OscP5 oscTextSender;
 OscP5 audioDataReceiver;
 NetAddress pythonLocation;
@@ -38,6 +39,7 @@ float restartAlpha = 0;
 float pulsePhase = 0;
 
 float audioLevel = 0;
+SoundFile sentEffect;
 
 boolean intro_text = true;
 float introAlpha = 0;        // fade-in disclaimer
@@ -66,6 +68,7 @@ void setup() {
 
   audioDataReceiver = new OscP5(this, 12003); //porta di ascolto da max !!!
 
+  sentEffect = new SoundFile(this, "sound_invio.wav");
 
   pythonLocation = new NetAddress("127.0.0.1", 12001); // python
   
@@ -133,6 +136,8 @@ void keyPressed() {
       OscMessage msg = new OscMessage("/text");
       msg.add(savedText);
       oscTextSender.send(msg, pythonLocation);
+      
+      sentEffect.play();
 
      // 2. Aggiungiamo nuove particelle (nuova memoria)
       createTextParticles(savedText);
