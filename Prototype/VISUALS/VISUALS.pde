@@ -190,6 +190,7 @@ void keyPressed() {
   } else if (key == BACKSPACE) {
     if (typing.length() > 0) {
       typing = typing.substring(0, typing.length() - 1);
+      keyEffect.play();
     }
   } else if (keyCode != SHIFT && keyCode != CONTROL && keyCode != ALT) {
     typing += key;
