@@ -72,7 +72,7 @@ class Particle {
   PVector tangent = new PVector(-toCenter.y, toCenter.x);
 
   float n = noise(pos.x * 0.003, pos.y * 0.003, frameCount * 0.02);
-  PVector noiseForce = PVector.fromAngle(n * TWO_PI).mult(0.9);
+  PVector noiseForce = PVector.fromAngle(n * TWO_PI).mult(1.2);
 
   
 
@@ -92,7 +92,7 @@ class Particle {
 void display() {
 
   // alpha basso per evitare saturazione ADD
-  float alpha = 150;
+  float alpha = 80;
 
   stroke(col, alpha);
 
