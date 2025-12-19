@@ -1,8 +1,19 @@
 import oscP5.*;
 import netP5.*;
+import java.util.Map; // Importante per iterare la mappa se serve
 OscP5 oscTextSender;
 OscP5 audioDataReceiver;
+OscP5 emiotionsReceiver;
 NetAddress pythonLocation;
+
+//hash map to store emotions
+HashMap<String, Float> emotions = new HashMap<String, Float>();
+// Mappa che associa il nome dell'emozione a un colore Processing
+HashMap<String, Integer> emotionColors = new HashMap<String, Integer>();
+// Variabili per il colore corrente (Normalizzati tra 0.0 e 1.0 per PixelFlow)
+float currentR = 255f;
+float currentG = 255f; // Default Ciano/Blu
+float currentB = 255f;
 
 enum SystemState {
   TEXT_INPUT,     // scrivi
@@ -62,12 +73,35 @@ void setup() {
   vortexCenter = new PVector(width/2, height/2);
 
   //OSC SETUP
-  oscTextSender = new OscP5(this, 12000); // porta locale (ricezione eventuale)
+  oscTextSender = new OscP5(this, 12000); // porta locale (ricezione eventuale) 
 
   audioDataReceiver = new OscP5(this, 12003); //porta di ascolto da max !!!
 
+  emiotionsReceiver = new OscP5(this, 12002); //porta di ascolto da python !!
 
   pythonLocation = new NetAddress("127.0.0.1", 12001); // python
+  
+  // --- CONFIGURAZIONE COLORI EMOZIONI ---
+  // Definiamo i colori base (R, G, B)
+  emotionColors.put("anger",   color(255, 0, 0));     // Rosso
+  emotionColors.put("joy",     color(255, 255, 0));   // Giallo
+  emotionColors.put("disgust", color(0, 255, 0));     // Verde
+  emotionColors.put("fear",    color(128, 0, 128));   // Viola
+  emotionColors.put("sadness", color(0, 0, 255));     // Blu scuro
+  emotionColors.put("realization",color(255, 165, 0));   // Arancione
+  emotionColors.put("neutral", color(255, 255, 255)); // Grigio/Bianco
+  emotionColors.put("realization",color());
+  emotionColors.put("annoyance",color());
+  emotionColors.put("grief",color());
+  emotionColors.put("remorse",color());
+  emotionColors.put("nervousness",color());
+  emotionColors.put("gratitude",color());
+  //realization
+  //annoyance
+  //grief
+  //remorse
+  //nervousness
+  //ggratitude
   
 }
 
@@ -102,7 +136,7 @@ void draw() {
     textSize(20);
     text("start typing to begin", width / 2, height / 2 + 120);
   }
-  
+  updateFluidColorFromEmotions();
   for (Particle p : particles ) {
     p.update();
   }
@@ -171,12 +205,12 @@ void createTextParticles(String t) {
   pg.loadPixels();
 
   int step = 3;
-
+  color c = color(currentR,currentG,currentB);
   for (int x = 0; x < pg.width; x += step) {
     for (int y = 0; y < pg.height; y += step) {
       int index = x + y * pg.width;
       if (index < pg.pixels.length && brightness(pg.pixels[index]) > 128) {
-        particles.add(new Particle(x, y));
+        particles.add(new Particle(x, y,c));
       }
     }
   }
@@ -184,8 +218,8 @@ void createTextParticles(String t) {
 
 /* Questo metodo viene chiamato automaticamente ogni volta che arriva un messaggio */
 void oscEvent(OscMessage theOscMessage) {
-
-  if (theOscMessage.checkAddrPattern("/audiodata/level")) {
+  String addr = theOscMessage.addrPattern();
+  if (addr.equals("/audiodata/level")) {
 
     // 2. Controlla se il messaggio contiene un valore float ("f")
     if (theOscMessage.checkTypetag("f")) {
@@ -196,6 +230,64 @@ void oscEvent(OscMessage theOscMessage) {
     else if (theOscMessage.checkTypetag("i")) {
       audioLevel = (float)theOscMessage.get(0).intValue();
     }
+  }else if (addr.startsWith("/emotion/")){
+    float val = 0;
+    if (theOscMessage.checkTypetag("f")) {
+      val = theOscMessage.get(0).floatValue();
+    } else if (theOscMessage.checkTypetag("i")) {
+      val = (float)theOscMessage.get(0).intValue();
+    }
+    // Estrarre il nome dell'emozione dall'indirizzo.
+    // L'indirizzo è "/emotion/gioia". 
+    // La stringa "/emotion/" è lunga 9 caratteri.
+    // Prendiamo tutto ciò che c'è dopo il 9° carattere.
+    String emotionName = addr.substring(9); 
+    // Salviamo o aggiorniamo il valore nella HashMap
+    emotions.put(emotionName, val);
+    // Debug: stampa cosa sta succedendo
+    //println("Emozione ricevuta: " + emotionName + " -> " + val);
+  }
+}
+
+//funzione che calcola il colore in base alle emozioni
+void updateFluidColorFromEmotions() {
+  float sumR = 0;
+  float sumG = 0;
+  float sumB = 0;
+  float totalWeight = 0;
+
+  // Itera su tutte le emozioni ricevute via OSC
+  for (String emotionName : emotions.keySet()) {
+    
+    // Prendi l'intensità (0.0 - 1.0)
+    float intensity = emotions.get(emotionName);
+    
+    // Se l'emozione ha un'intensità rilevante e abbiamo un colore associato
+    if (intensity > 0.05 && emotionColors.containsKey(emotionName)) {
+      int c = emotionColors.get(emotionName);
+      
+      // Somma i canali colore pesati per l'intensità
+      sumR += red(c) * intensity;
+      sumG += green(c) * intensity;
+      sumB += blue(c) * intensity;
+      
+      totalWeight += intensity;
+    }
+  }
+
+  // Se abbiamo rilevato emozioni, calcoliamo la media
+  if (totalWeight > 0) {
+    // CORREZIONE: NON dividere per 255.0f. Vogliamo valori 0-255.
+    currentR = (sumR / totalWeight);
+    currentG = (sumG / totalWeight);
+    currentB = (sumB / totalWeight);
+  } else {
+    // FALLBACK: Se non ci sono emozioni torna al Ciano "Sci-Fi"
+    // CORREZIONE: Il terzo parametro di lerp deve essere 0.0-1.0 (es. 0.05 per animazione fluida)
+    // Inoltre i target devono essere 0-255
+    currentR = lerp(currentR, 255f, 0.05f);   // Rosso a 0
+    currentG = lerp(currentG, 255f, 0.05f); // Verde alto
+    currentB = lerp(currentB, 255.0f, 0.05f); // Blu massimo
   }
 }
 
