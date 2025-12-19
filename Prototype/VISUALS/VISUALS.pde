@@ -58,7 +58,8 @@ float fadeSpeed = 1.5;       // velocità fade-in
 
 
 void setup() {
-  size(1430, 800, P2D);
+  size(1440, 800, P2D);
+  //fullScreen(P2D);
   // pixelDensity(2); per aumentare risoluzione, ma buggato per colpa di pg. Da fixare.
   frameRate(60);
   
