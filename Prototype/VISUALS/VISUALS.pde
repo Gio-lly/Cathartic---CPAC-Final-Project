@@ -81,7 +81,7 @@ void setup() {
 
   audioDataReceiver = new OscP5(this, 12003); //porta di ascolto da max !!!
 
-  emiotionsReceiver = new OscP5(this, 12002); //porta di ascolto da python !!
+  emiotionsReceiver = new OscP5(this, 9000); //porta di ascolto da python !!
   sentEffect = new SoundFile(this, "sound_invio.wav");
   keyEffect = new SoundFile(this, "key_sound.wav");
   
@@ -223,12 +223,13 @@ void createTextParticles(String t) {
 /* Questo metodo viene chiamato automaticamente ogni volta che arriva un messaggio */
 void oscEvent(OscMessage theOscMessage) {
   String addr = theOscMessage.addrPattern();
+  println(theOscMessage);
   if (addr.equals("/audiodata/level")) {
 
     // 2. Controlla se il messaggio contiene un valore float ("f")
     if (theOscMessage.checkTypetag("f")) {
       audioLevel = theOscMessage.get(0).floatValue();
-      println(audioLevel);
+      //println(audioLevel);
     }
     // Opzionale: se il valore fosse un intero ("i")
     else if (theOscMessage.checkTypetag("i")) {
@@ -246,10 +247,11 @@ void oscEvent(OscMessage theOscMessage) {
     // La stringa "/emotion/" è lunga 9 caratteri.
     // Prendiamo tutto ciò che c'è dopo il 9° carattere.
     String emotionName = addr.substring(9); 
+    //println(emotionName);
     // Salviamo o aggiorniamo il valore nella HashMap
     emotions.put(emotionName, val);
     // Debug: stampa cosa sta succedendo
-    //println("Emozione ricevuta: " + emotionName + " -> " + val);
+    println("Emozione ricevuta: " + emotionName + " -> " + val);
   }
 }
 
