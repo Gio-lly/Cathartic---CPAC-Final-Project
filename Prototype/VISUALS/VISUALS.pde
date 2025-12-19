@@ -51,6 +51,7 @@ float pulsePhase = 0;
 
 float audioLevel = 0;
 SoundFile sentEffect;
+SoundFile keyEffect;
 
 boolean intro_text = true;
 float introAlpha = 0;        // fade-in disclaimer
@@ -82,7 +83,8 @@ void setup() {
 
   emiotionsReceiver = new OscP5(this, 12002); //porta di ascolto da python !!
   sentEffect = new SoundFile(this, "sound_invio.wav");
-
+  keyEffect = new SoundFile(this, "key_sound.wav");
+  
   pythonLocation = new NetAddress("127.0.0.1", 12001); // python
   
   // --- CONFIGURAZIONE COLORI EMOZIONI ---
@@ -191,6 +193,7 @@ void keyPressed() {
     }
   } else if (keyCode != SHIFT && keyCode != CONTROL && keyCode != ALT) {
     typing += key;
+    keyEffect.play();
   }
 }
 
