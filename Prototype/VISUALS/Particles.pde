@@ -17,7 +17,7 @@ class Particle {
   PVector home;          // posizione del testo
   ParticleState pState;
 
-  float releaseTimer= 40;
+  float releaseTimer= 20;
 
 
   Particle(float x, float y,color c) {
