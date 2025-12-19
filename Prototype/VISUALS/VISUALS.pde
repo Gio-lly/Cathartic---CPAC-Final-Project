@@ -90,18 +90,13 @@ void setup() {
   emotionColors.put("sadness", color(0, 0, 255));     // Blu scuro
   emotionColors.put("realization",color(255, 165, 0));   // Arancione
   emotionColors.put("neutral", color(255, 255, 255)); // Grigio/Bianco
-  emotionColors.put("realization",color());
-  emotionColors.put("annoyance",color());
-  emotionColors.put("grief",color());
-  emotionColors.put("remorse",color());
-  emotionColors.put("nervousness",color());
-  emotionColors.put("gratitude",color());
-  //realization
-  //annoyance
-  //grief
-  //remorse
-  //nervousness
-  //ggratitude
+  emotionColors.put("realization",color(38,219,255)); //azzurro
+  emotionColors.put("annoyance",color(97,67,65)); //marrone
+  emotionColors.put("grief",color(47,41,64)); //viola scuro
+  emotionColors.put("remorse",color(11,46,9)); //verde scuro
+  emotionColors.put("nervousness",color(214,141,92)); //arancione chiaro
+  emotionColors.put("gratitude",color(250,215,120)); //giallo chiaro
+  
   
 }
 
