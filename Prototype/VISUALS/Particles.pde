@@ -63,24 +63,24 @@ class Particle {
 }
 
   void applyVortexForces() {
-
+  float audioEnergy = constrain(audioLevel / 80.0, 0, 1);
   PVector toCenter = PVector.sub(vortexCenter, pos);
   float d = toCenter.mag() + 0.001;
   toCenter.normalize();
 
   PVector tangent = new PVector(-toCenter.y, toCenter.x);
 
-  float n = noise(pos.x * 0.003, pos.y * 0.003, frameCount * 0.003);
+  float n = noise(pos.x * 0.003, pos.y * 0.003, frameCount * 0.02);
   PVector noiseForce = PVector.fromAngle(n * TWO_PI).mult(0.9);
 
-  float audioEnergy = constrain(audioLevel / 80.0, 0, 1);
+  
 
-  acc.add(tangent.mult(1.1 + audioEnergy));
-  acc.add(toCenter.mult(0.2));
+  acc.add(tangent.mult(1.5 + audioEnergy));
+  acc.add(toCenter.mult(0.2*audioEnergy));
   acc.add(noiseForce);
 
   vel.add(acc);
-  vel.limit(2.5 + audioEnergy * 2);
+  vel.limit(0.5 + audioEnergy * 3);
   pos.add(vel);
   vel.mult(0.985);
   acc.mult(0);
@@ -91,7 +91,7 @@ class Particle {
 void display() {
 
   // alpha basso per evitare saturazione ADD
-  float alpha = 25;
+  float alpha = 150;
 
   stroke(col, alpha);
 
