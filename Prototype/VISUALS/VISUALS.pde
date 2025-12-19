@@ -39,6 +39,12 @@ float pulsePhase = 0;
 
 float audioLevel = 0;
 
+boolean intro_text = true;
+float introAlpha = 0;        // fade-in disclaimer
+float hintAlpha = 0;         // alpha testo secondario
+float hintPhase = 0;         // per pulsazione
+float fadeSpeed = 1.5;       // velocità fade-in
+
 
 void setup() {
   size(1430, 800, P2D);
@@ -62,6 +68,7 @@ void setup() {
 
 
   pythonLocation = new NetAddress("127.0.0.1", 12001); // python
+  
 }
 
 void draw() {
@@ -70,6 +77,31 @@ void draw() {
   noStroke();
 
   background(5);
+  
+  if (intro_text) {
+    // --- Fade-in disclaimer ---
+    introAlpha = min(255, introAlpha + fadeSpeed);
+    fill(255, introAlpha);
+    textAlign(CENTER, CENTER);
+    textSize(32);
+
+    text(
+      "Everything you write here is private.\n" +
+      "Nothing will be saved, used or seen by anyone.\n" +
+      "There is no judgment and no record.\n" +
+      "You are free to write whatever you want.",
+      width / 2,
+      height / 2 - 60
+    );
+
+    // --- Testo secondario pulsante ---
+    hintPhase += 0.03;
+    hintAlpha = 80 + 60 * sin(hintPhase); // grigio che appare/scompare
+
+    fill(160, hintAlpha);
+    textSize(20);
+    text("start typing to begin", width / 2, height / 2 + 120);
+  }
   
   for (Particle p : particles ) {
     p.update();
@@ -92,6 +124,7 @@ void draw() {
 }
 
 void keyPressed() {
+  intro_text = false;
   if (key == RETURN || key == ENTER) {
     if (typing.length() > 0) {
 
@@ -164,4 +197,40 @@ void oscEvent(OscMessage theOscMessage) {
       audioLevel = (float)theOscMessage.get(0).intValue();
     }
   }
+}
+
+void resetSketch() {
+  // stato generale
+  state = SystemState.TEXT_INPUT;
+
+  typing = "";
+  savedText = "";
+
+  activeQuestions.clear();
+  particles.clear();
+
+  // intro
+  intro_text = true;
+  introAlpha = 0;
+  hintAlpha = 0;
+  hintPhase = 0;
+
+  showRestart = false;
+  restartAlpha = 0;
+  pulsePhase = 0;
+
+  audioLevel = 0;
+
+  // grafica
+  background(0);
+  pg.beginDraw();
+  pg.clear();
+  pg.endDraw();
+
+  vortexCenter.set(width / 2, height / 2);
+}
+
+
+void mousePressed() {
+  resetSketch();
 }
