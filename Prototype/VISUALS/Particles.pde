@@ -9,7 +9,7 @@ class Particle {
   float maxSpeed = random(0.5, 1.3); 
   float maxForce = random(0.05, 0.15);
   boolean isReturning = true; 
-
+  
   color col;
   float dissolveCounter = 0;
   float dissolveRate = random(0.02, 0.05); 
@@ -17,21 +17,23 @@ class Particle {
   PVector home;          // posizione del testo
   ParticleState pState;
 
-  float reemergeTimer = random(300, 1200);
+  float releaseTimer= 40;
 
 
-  Particle(float x, float y) {
+  Particle(float x, float y,color c) {
     pos = new PVector(x, y);
     target = new PVector(x, y);
     vel = PVector.random2D().mult(random(0.5, 1)); 
     acc = new PVector(0, 0);
-    col = textColor; 
+    col = c; 
     home = new PVector(x, y);
     pState = ParticleState.TEXT;
   }
 
  void update() {
-
+ 
+  col = color(currentR, currentG,currentB);
+   
   switch (pState) {
 
     case TEXT:
@@ -40,8 +42,12 @@ class Particle {
       break;
 
     case RELEASED:
-      applyVortexForces();
-      pState = ParticleState.VORTEX;
+      releaseTimer--;
+      if(releaseTimer<=0){
+        applyVortexForces();
+        pState = ParticleState.VORTEX;
+      }
+      
       break;
 
     case VORTEX:
@@ -52,17 +58,7 @@ class Particle {
       //}
       break;
 
-    case REEMERGING:
-      PVector arrive = PVector.sub(home, pos);
-      arrive.setMag(0.8);
-      vel.lerp(arrive, 0.08);
-      pos.add(vel);
-
-      if (pos.dist(home) < 2) {
-        pState = ParticleState.TEXT;
-        reemergeTimer = random(600, 1600);
-      }
-      break;
+    
   }
 }
 
