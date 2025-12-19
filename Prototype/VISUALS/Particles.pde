@@ -33,6 +33,7 @@ class Particle {
  void update() {
  
   col = color(currentR, currentG,currentB);
+  //println(col);
    
   switch (pState) {
 
@@ -92,7 +93,6 @@ void display() {
 
   // alpha basso per evitare saturazione ADD
   float alpha = 25;
-
   stroke(col, alpha);
 
   float size = map(audioLevel, 0, 127, 4, 8);
