@@ -1,15 +1,12 @@
 # 1. Import required packages
-import time
-import threading
-import random
 from transformers import pipeline
-import torch
-import pandas as pd
 from pythonosc import dispatcher
 from pythonosc import osc_server
 from pythonosc import udp_client
+import logging
 
-from emotion_smoother import EmotionSmoother
+from vector_smoother import VectorSmoother
+from llm_processer import translate
 
 # Configuration
 OSC_IP = "127.0.0.1"
@@ -26,8 +23,17 @@ DESCENT_RATE = 0.05
 IDLE_TIMEOUT = 20.0    # Seconds to wait before drifting to neutral  
 FRAME_RATE = 30     # How many times per second we update/send OSC
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(message)s',
+    handlers=[
+        logging.FileHandler("server_logs.txt", mode='w'), # write logs to file
+        logging.StreamHandler()                 # write also to terminal
+    ]
+)
+
 # 2. Load the pre-trained GoEmotions model
-print("Loading model...")
+logging.info("Loading model...")
 MODEL_NAME = "SamLowe/roberta-base-go_emotions"
 
 emotion_classifier = pipeline(
@@ -36,14 +42,14 @@ emotion_classifier = pipeline(
     return_all_scores=True,
     top_k=None
 )
-print("Model loaded.")
+logging.info("Model loaded.")
 
-# Setup OSC sender for EmotionSmoother
+# Setup OSC sender for VectorSmoother
 osc_sender = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT)
 osc_sender_ableton = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT_ABLETON)
 
 # Rate Configuration
-smoother = EmotionSmoother(
+smoother = VectorSmoother(
     osc_sender, 
     active_rate=ASCENT_RATE,      # Fast change when message arrives (0->1 in 0.5s)
     idle_rate=DESCENT_RATE,       # Very slow drift to neutral (1->0 in 20s)
@@ -51,7 +57,7 @@ smoother = EmotionSmoother(
 )
 smoother.start()
 
-smoother_ableton = EmotionSmoother(
+smoother_ableton = VectorSmoother(
     osc_sender_ableton, 
     active_rate=ASCENT_RATE,      # Fast change when message arrives (0->1 in 0.5s)
     idle_rate=DESCENT_RATE,       # Very slow drift to neutral (1->0 in 20s)
@@ -66,21 +72,26 @@ def analyze_emotions(text):
 
 # OSC Message Handler
 def osc_text_handler(*args):
-    text = args[1]
-    print(f"[Server] Received: '{text}'")
-    new_emotions = analyze_emotions(text)
+    raw_text = args[1]
+    logging.info(f"[Server] Received: '{raw_text}'")
+    new_emotions = analyze_emotions(raw_text)
     
+    final_text = translate(raw_text)
+    
+    if final_text != raw_text:
+        logging.info(f"[Server] Translated:   '{final_text}'")
+
     # Send to smoother
     smoother.set_target(new_emotions)
     smoother_ableton.set_target(new_emotions)
     top = sorted(new_emotions.items(), key=lambda x: x[1], reverse=True)[:2]
-    print(f"         > Targets: {top}")
+    logging.info(f"         > Targets: {top}")
 
-# 4. Example usage
+# 4. Usage
 if __name__ == "__main__":
     disp = dispatcher.Dispatcher()
     disp.map("/text", osc_text_handler)
     server = osc_server.ThreadingOSCUDPServer((OSC_IP, OSC_RECV_PORT), disp)
     
-    print(f"Server listening on {OSC_RECV_PORT}. Sending to {OSC_SEND_PORT} and {OSC_SEND_PORT_ABLETON}")
+    logging.info(f"Server listening on {OSC_RECV_PORT}. Sending to {OSC_SEND_PORT} and {OSC_SEND_PORT_ABLETON}")
     server.serve_forever()

@@ -4,7 +4,7 @@ import os
 
 def cls(): os.system('cls' if os.name=='nt' else 'clear')
 
-class EmotionSmoother:
+class VectorSmoother:
     def __init__(self, client, active_rate=2.0, idle_rate=0.1, idle_timeout=5.0):
         """
         active_rate (float): Speed of change when a new message arrives.
