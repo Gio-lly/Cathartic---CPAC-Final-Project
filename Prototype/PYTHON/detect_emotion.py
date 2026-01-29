@@ -6,7 +6,7 @@ from pythonosc import udp_client
 import logging
 
 from vector_smoother import VectorSmoother
-from llm_processer import translate
+from llm_processor import translate
 
 # Configuration
 OSC_IP = "127.0.0.1"
