@@ -6,7 +6,7 @@
 static class Config {
 
   // ── Dev mode ─────────────────────────────────────────────
-  static boolean DEV_MODE = true;   // <── metti false in produzione
+  static boolean DEV_MODE = false;   // <── metti false in produzione
   static boolean USE_FILE_AUDIO = true; // <── metti false per microfono
 
   // ── Stati FSM ────────────────────────────────────────────
@@ -25,7 +25,7 @@ static class Config {
   static int PARTICLES_FADEOUT_TIME = 3000;   // fade-out particelle
 
   // ── Colori ───────────────────────────────────────────────
-  static int BG_COLOR               = 0;               // nero
+  static int BG_COLOR               = 5;               // nero
   static int TEXT_COLOR             = 0xFFFFFFFF;       // bianco
   static int PARTICLE_BASE_COLOR    = 0xFFFFFFFF;
   static int DISCLAIMER_TEXT_COLOR  = 0xFFAAAAAA;       // grigio chiaro
@@ -55,7 +55,7 @@ static class Config {
 
   // ── Chladni / ParticleSystem ───────────────────────────────
   // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 8000;
+  static int    PARTICLE_COUNT        = 30000;
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
@@ -117,7 +117,7 @@ static class Config {
   
   // ── Visuals ────────────────────────────────────────────────────────────────
   // Particle stroke weight at rest (no kick)
-  static float  BASE_STROKE_W         = 4.0;
+  static float  BASE_STROKE_W         = 1.0;
   // Particle stroke weight target during a strong kick envelope
   static float  KICK_STROKE_W         = 2.2;
   // Smoothing speed for stroke weight transitions (0..1)
