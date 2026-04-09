@@ -6,7 +6,7 @@
 static class Config {
 
   // ── Dev mode ─────────────────────────────────────────────
-  static boolean DEV_MODE = false;   // <── metti false in produzione
+  static boolean DEV_MODE = true;   // <── metti false in produzione
   static boolean USE_FILE_AUDIO = true; // <── metti false per microfono
 
   // ── Stati FSM ────────────────────────────────────────────

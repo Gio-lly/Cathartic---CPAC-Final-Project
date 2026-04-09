@@ -13,54 +13,72 @@ class DevMode {
 
   // ── Render overlay ───────────────────────────────────────
   void render() {
-    if (!Config.DEV_MODE) return;
-
-    // Sfondo semitrasparente
-    String[] lines = buildLines();
-    int panelH = lines.length * LINE_HEIGHT + 16;
-
-    noStroke();
-    fill(0, 0, 0, 180);
-    rect(PANEL_X, PANEL_Y, PANEL_W, panelH, 4);
-
-    // Testo comandi
-    textFont(fontSmall);
-    textAlign(LEFT, TOP);
-    fill(0, 255, 120);   // verde terminale
-
-    for (int i = 0; i < lines.length; i++) {
-      text(lines[i], PANEL_X + 8, PANEL_Y + 8 + i * LINE_HEIGHT);
+      if (!Config.DEV_MODE) return;
+      if (!overlayVisible) return;
+    
+      String[] lines = buildLines();
+      int panelH = lines.length * LINE_HEIGHT + 16;
+    
+      noStroke();
+      fill(0, 0, 0, 180);
+      rect(PANEL_X, PANEL_Y, PANEL_W, panelH, 4);
+    
+      textFont(fontSmall);
+      textAlign(LEFT, TOP);
+    
+      for (int i = 0; i < lines.length; i++) {
+        String line = lines[i];
+        if (line.startsWith("§GRAY§")) {
+          fill(120);
+          line = line.substring(6);
+        } else {
+          fill(255);
+        }
+        text(line, PANEL_X + 8, PANEL_Y + 8 + i * LINE_HEIGHT);
+      }
+    
+      drawStatusBar();
     }
-
-    // Indicatori stato in tempo reale (angolo in basso a sinistra)
-    drawStatusBar();
-  }
-
-  // ── Linee di testo del pannello ──────────────────────────
-  String[] buildLines() {
-    String stateName = sm.stateLabel(sm.getCurrent());
-    String audioInfo = audio.active
-      ? nf(audio.getAmplitude(), 1, 3)
-      : "N/A";
-
-    return new String[] {
-      "── DEV MODE ──────────────────",
-      "Stato corrente: " + stateName + " [" + sm.getCurrent() + "]",
-      "Particelle: "   + ps.count(),
-      "Audio amp: "    + audioInfo,
-      "FPS: "          + nf(frameRate, 1, 1),
-      "─────────────────────────────",
-      "← → : cambia stato",
-      "1-5  : carica testo preset",
-      "D    : toggle DEV overlay",
-      "SPAZIO: skip disclaimer/thanks",
-      "─────────────────────────────",
-      "Preset corrente:",
-      "  " + (inputHandler.length() > 0
-               ? inputHandler.getText().substring(0, min(30, inputHandler.length())) + "…"
-               : "(vuoto)")
-    };
-  }
+    
+   String[] buildLines() {
+      String stateName = sm.stateLabel(sm.getCurrent());
+      String audioInfo = audio.active ? nf(audio.getAmplitude(), 1, 3) : "N/A";
+    
+      ArrayList<String> lines = new ArrayList<String>();
+    
+      lines.add("── DEV MODE ──────────────────");
+      lines.add("Stato corrente: " + stateName + " [" + sm.getCurrent() + "]");
+      lines.add("Particelle: "     + ps.count());
+      lines.add("Audio amp: "      + audioInfo);
+      lines.add("FPS: "            + nf(frameRate, 1, 1));
+      lines.add("─────────────────────────────");
+      lines.add("← → : cambia stato");
+      lines.add("1-5  : carica testo preset");
+      lines.add("<    : toggle DEV overlay");
+      lines.add("SPAZIO: skip disclaimer/thanks");
+      lines.add("─────────────────────────────");
+      lines.add("Testo attuale:");
+      lines.add("  " + (inputHandler.length() > 0
+                 ? inputHandler.getText().substring(0, min(30, inputHandler.length())) + "…"
+                 : "(vuoto)"));
+      lines.add("─────────────────────────────");
+      lines.add("Emotions:");
+    
+      ArrayList<String> keys = new ArrayList<String>(emotions.keySet());
+      Collections.sort(keys, new Comparator<String>() {
+        public int compare(String a, String b) {
+          return Float.compare(emotions.get(b), emotions.get(a));
+        }
+      });
+    
+      for (String key : keys) {
+        float val = emotions.get(key);
+        String prefix = (val == 0f) ? "§GRAY§" : "";
+        lines.add(prefix + "  " + String.format("%-14s %5.2f", key, val));
+      }
+    
+      return lines.toArray(new String[0]);
+    }
 
   // ── Barra di stato in basso ───────────────────────────────
   void drawStatusBar() {
@@ -110,7 +128,7 @@ class DevMode {
     }
 
     // D: toggle overlay (disabilita il rendering del pannello)
-    if (key == 'd' || key == 'D') {
+    if (key == '<') {
       // Toglie solo il rendering ma lascia il DEV_MODE attivo
       // (usiamo una flag locale)
       overlayVisible = !overlayVisible;

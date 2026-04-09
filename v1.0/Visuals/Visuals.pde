@@ -26,8 +26,16 @@
 //  This Visuals.pde code is used to initialize everything and start the StateMachine.
 // =============================================================
 
+// Library for audio analysis
 import ddf.minim.*;
 import ddf.minim.analysis.*;
+
+// Library for communication
+import oscP5.*;
+import netP5.*;
+
+// utils
+import java.util.*;
 
 
 // ── Riferimenti globali ──────────────────────────────────────
@@ -46,10 +54,19 @@ Minim minim;
 AudioSample sentEffect;
 AudioSample keyEffect;
 
+// ── OSC ─────────────────────────────────────────────────────
+OscP5 oscTextSender;
+OscP5 oscEmotionsReceiver;
+OscP5 audioDataReceiver;
+NetAddress pythonLocation;
+
+// ── Hash map to store emotions ──────────────────────────────
+HashMap<String, Float> emotions = new HashMap<String, Float>();
+
 // =============================================================
 void setup() {
   size(1280, 720);           // Cambia con fullScreen() per l'installazione
-  //fullScreen();
+  fullScreen(2);
   pixelDensity(2);           // Migliore qualità pixels
   
   smooth(8);                 // Draws all geometry with smooth (anti-aliased) edges
@@ -74,6 +91,12 @@ void setup() {
   minim = new Minim(this);
   sentEffect = minim.loadSample("sound_invio.wav", 512);
   keyEffect  = minim.loadSample("key_sound.wav", 512);
+  
+  // OSC setup
+  oscTextSender = new OscP5(this, 12000); // porta locale (ricezione eventuale) 
+  oscEmotionsReceiver = new OscP5(this, 9000); //porta di ascolto da python !!
+
+  pythonLocation = new NetAddress("127.0.0.1", 12001); // python
 }
 
 // =============================================================

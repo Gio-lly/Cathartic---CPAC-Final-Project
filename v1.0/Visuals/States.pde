@@ -75,7 +75,9 @@ class DisclaimerState extends BaseState {
 
   // Solo qui avviene la transizione
   void handleKey() {
-    sm.changeState(Config.STATE_INPUT);
+    if (key != '<' && keyCode != RIGHT && keyCode != LEFT) {
+      sm.changeState(Config.STATE_INPUT);
+    }
   }
 }
 
@@ -134,20 +136,33 @@ class InputState extends BaseState {
     if (key == ENTER || key == RETURN) {
       if (inputHandler.getText().length() > 0) {
         
+        String savedText = inputHandler.getText();
+        
+        // Send prompt to python via osc
+        sendTextToPython(savedText);
+        
         // Costruisci le particelle dal testo corrente
-        ps.buildFromText(inputHandler.getText());
+        ps.buildFromText(savedText);
         sm.changeState(Config.STATE_PARTICLES);
+        
+        // Sound effect (Enter)
         sentEffect.trigger();
       }
     } else if (key == BACKSPACE) {
       inputHandler.backspace();
     } else if (key == DELETE) {
       inputHandler.clear();
-    } else if (key >= 32 && key < 127) {  // caratteri stampabili ASCII
+    } else if (key >= 32 && key < 127 && key != '<') {  // caratteri stampabili ASCII
       inputHandler.append((char) key);
       keyEffect.trigger();
-    }
+      
+    } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<') {
+      inputHandler.append((char) key);
+      keyEffect.trigger();
+}
   }
+  
+
 }
 
 
@@ -208,7 +223,7 @@ class ParticlesState extends BaseState {
       return;
     }
     // Qualsiasi altro tasto avvia il fade-out anticipato
-    if (!fadingOut) startFadeOut();
+    if (!fadingOut && key != '<') startFadeOut();
   }
 
   void startFadeOut() {
