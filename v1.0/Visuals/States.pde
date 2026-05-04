@@ -146,7 +146,7 @@ class InputState extends BaseState {
         sm.changeState(Config.STATE_PARTICLES);
         
         // Sound effect (Enter)
-        sentEffect.trigger();
+        sentEffect.play();
       }
     } else if (key == BACKSPACE) {
       inputHandler.backspace();
@@ -154,11 +154,11 @@ class InputState extends BaseState {
       inputHandler.clear();
     } else if (key >= 32 && key < 127 && key != '<') {  // caratteri stampabili ASCII
       inputHandler.append((char) key);
-      keyEffect.trigger();
+      keyEffect.play();
       
     } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<') {
       inputHandler.append((char) key);
-      keyEffect.trigger();
+      keyEffect.play();
 }
   }
   

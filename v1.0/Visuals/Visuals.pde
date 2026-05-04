@@ -27,8 +27,7 @@
 // =============================================================
 
 // Library for audio analysis
-import ddf.minim.*;
-import ddf.minim.analysis.*;
+import processing.sound.*;
 
 // Library for communication
 import oscP5.*;
@@ -50,9 +49,8 @@ PFont fontMain;
 PFont fontSmall;
 
 // ── Sound fxs ─────────────────────────────────────────────────────
-Minim minim;
-AudioSample sentEffect;
-AudioSample keyEffect;
+SoundFile sentEffect;
+SoundFile keyEffect;
 
 // ── OSC ─────────────────────────────────────────────────────
 OscP5 oscTextSender;
@@ -66,7 +64,7 @@ HashMap<String, Float> emotions = new HashMap<String, Float>();
 // =============================================================
 void setup() {
   size(1280, 720);           // Cambia con fullScreen() per l'installazione
-  fullScreen(2);
+  //fullScreen(2);
   pixelDensity(2);           // Migliore qualità pixels
   
   smooth(8);                 // Draws all geometry with smooth (anti-aliased) edges
@@ -88,9 +86,8 @@ void setup() {
   sm.changeState(Config.STATE_DISCLAIMER);
   
   // sound fxs
-  minim = new Minim(this);
-  sentEffect = minim.loadSample("sound_invio.wav", 512);
-  keyEffect  = minim.loadSample("key_sound.wav", 512);
+  sentEffect = new SoundFile(this, "sound_invio.wav");
+  keyEffect  = new SoundFile(this, "key_sound.wav");
   
   // OSC setup
   oscTextSender = new OscP5(this, 12000); // porta locale (ricezione eventuale) 
