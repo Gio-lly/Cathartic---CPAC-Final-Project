@@ -5,13 +5,16 @@ import os
 def cls(): os.system('cls' if os.name=='nt' else 'clear')
 
 class EmotionSmoother:
-    def __init__(self, client, active_rate=2.0, idle_rate=0.1, idle_timeout=5.0):
+    def __init__(self, client, active_rate=2.0, idle_rate=0.1, idle_timeout=5.0, 
+                 prompt_client = None, prompt_interval = 3.0):
         """
         active_rate (float): Speed of change when a new message arrives.
         idle_rate (float): Speed of decay to neutral after timeout.
         idle_timeout (float): Seconds to wait before drifting to neutral.
         """
         self.client = client
+        self.prompt_client = prompt_client
+        self.prompt_interval = prompt_interval
         self.fps = 30               # Update rate
         self.dt = 1.0 / self.fps    # Time per frame
         self.running = True
@@ -26,6 +29,9 @@ class EmotionSmoother:
         self.target_values = {"neutral": 1.0}
         self.last_input_time = time.time()
         self.is_idle = True
+
+        #FORCES SENDING AT FIRST START
+        self.last_prompt_time  = 0.0
 
         self.lock = threading.Lock()
         print("[Engine] EmotionSmoother initialized.")
@@ -57,6 +63,18 @@ class EmotionSmoother:
             # --- ACTIVE MODE ---
             self.is_idle = False
             return self.target_values, self.active_rate
+
+    def _send_prompts(self):
+        """Sends top emotions mapped to a prompt to Lightning"""
+        if self.prompt_client is None:
+            return
+        
+        from emotion_smoother import emotions_to_prompts
+        prompts = emotions_to_prompts(self.current_values, top_n=3, threshold=0.1)
+        if prompts:
+            print(f"[Prompts] Sending: {prompts}")
+            self.prompt_client.send_message("/prompts", json.dumps(prompts))
+    
 
     def update_and_send(self):
         """Main Loop: Runs 30 times a second."""
@@ -97,6 +115,10 @@ class EmotionSmoother:
                         clean_name = emotion.replace(" ", "_")
                         osc_path = f"/emotion/{clean_name}"
                         self.client.send_message(osc_path, round(val,2))
+                now = time.time()
+                if now - self.last_prompt_time > self.prompt_interval:
+                    self._send_prompts()
+                    self.last_prompt_time = now
 
                 # 4. Display Current State in Console
                 # We will overwrite the previous block of text
