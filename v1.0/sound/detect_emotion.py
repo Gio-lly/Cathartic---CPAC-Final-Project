@@ -14,7 +14,7 @@ from emotion_smoother import EmotionSmoother
 # Configuration
 OSC_IP = "127.0.0.1"
 OSC_SEND_PORT = 9000  # Sending smoothed data out
-OSC_SEND_PORT_ABLETON = 9001  
+OSC_SEND_PORT_LIGHTNING = 9001  
 OSC_RECV_PORT = 12001  # Listening for text
 
 # Speed of change (units per second)
@@ -40,7 +40,7 @@ print("Model loaded.")
 
 # Setup OSC sender for EmotionSmoother
 osc_sender = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT)
-osc_sender_ableton = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT_ABLETON)
+osc_sender_lightning = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT_LIGHTNING)
 
 # Rate Configuration
 smoother = EmotionSmoother(
@@ -51,13 +51,13 @@ smoother = EmotionSmoother(
 )
 smoother.start()
 
-smoother_ableton = EmotionSmoother(
-    osc_sender_ableton, 
+smoother_lightning = EmotionSmoother(
+    osc_sender_lightning, 
     active_rate=ASCENT_RATE,      # Fast change when message arrives (0->1 in 0.5s)
     idle_rate=DESCENT_RATE,       # Very slow drift to neutral (1->0 in 20s)
     idle_timeout=IDLE_TIMEOUT     # Wait 10 seconds before starting drift (For testing)
 )
-smoother_ableton.start()
+smoother_lightning.start()
 
 # Emotion Analysis Function
 def analyze_emotions(text):
@@ -78,7 +78,7 @@ def osc_text_handler(*args):
     
     # Send to smoother
     smoother.set_target(new_emotions)
-    smoother_ableton.set_target(new_emotions)
+    smoother_lightning.set_target(new_emotions)
     top = sorted(new_emotions.items(), key=lambda x: x[1], reverse=True)[:2]
     print(f"         > Targets: {top}")
 
@@ -88,5 +88,5 @@ if __name__ == "__main__":
     disp.map("/text", osc_text_handler)
     server = osc_server.ThreadingOSCUDPServer((OSC_IP, OSC_RECV_PORT), disp)
     
-    print(f"Server listening on {OSC_RECV_PORT}. Sending to {OSC_SEND_PORT} and {OSC_SEND_PORT_ABLETON}")
+    print(f"Server listening on {OSC_RECV_PORT}. Sending to {OSC_SEND_PORT} and {OSC_SEND_PORT_LIGHTNING}")
     server.serve_forever()
