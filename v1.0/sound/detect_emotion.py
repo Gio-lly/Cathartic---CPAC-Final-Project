@@ -14,10 +14,10 @@ from emotions_to_prompt import emotions_to_prompts
 
 # Configuration
 
-LIGHTNING_WS_URL = "wss://9001-01kp66x818nvqtvyvcf9bkr5ze.cloudspaces.litng.ai"
+LIGHTNING_WS_URL = "wss://9002-01kp66x818nvqtvyvcf9bkr5ze.cloudspaces.litng.ai"
 OSC_IP = "127.0.0.1"
 OSC_SEND_PORT = 9000  # Sending smoothed data out
-OSC_SEND_PORT_LIGHTNING = 9001  
+OSC_SEND_PORT_LIGHTNING = 9002  
 OSC_RECV_PORT = 12001  # Listening for text
 
 # Speed of change (units per second)
@@ -25,7 +25,7 @@ OSC_RECV_PORT = 12001  # Listening for text
 # 2.0 means it can go 0->1 in 0.5 seconds (Fast)
 # 0.2 means it can go 1->0 in 5.0 seconds (Slow)
 ASCENT_RATE = 0.1  
-DESCENT_RATE = 0.05
+DESCENT_RATE = 0.005
 IDLE_TIMEOUT = 20.0    # Seconds to wait before drifting to neutral  
 FRAME_RATE = 30     # How many times per second we update/send OSC
 
