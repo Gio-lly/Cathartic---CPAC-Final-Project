@@ -38,21 +38,19 @@ EMOTION_PROMPTS = {
 
 def emotions_to_prompts(emotion_vector: dict, top_n: int = 3, threshold: float = 0.1) -> dict:
     """
-    Prende il vettore di emozioni e restituisce un dict prompt→weight
-    per le top_n emozioni sopra la soglia.
-    
-    Es: {"euphoric synthwave pad...": 0.8, "melancholic piano...": 0.3}
+    Restituisce TUTTI i prompt con il loro peso corrente.
+    Emozioni non in EMOTION_PROMPTS vengono ignorate.
     """
-    # Filtra solo emozioni sopra la soglia
-    filtered = {k: v for k, v in emotion_vector.items() if v >= threshold and k in EMOTION_PROMPTS}
-    
-    # Prendi le top_n
-    top = sorted(filtered.items(), key=lambda x: x[1], reverse=True)[:top_n]
-    
-    # Mappa al prompt corrispondente
     result = {}
-    for emotion, weight in top:
-        prompt = EMOTION_PROMPTS[emotion]
-        result[prompt] = round(weight, 2)
+    
+    # Prima metti tutti a 0
+    for prompt in EMOTION_PROMPTS.values():
+        result[prompt] = 0.0
+    
+    # Poi aggiorna con i valori correnti
+    for emotion, weight in emotion_vector.items():
+        if emotion in EMOTION_PROMPTS:
+            prompt = EMOTION_PROMPTS[emotion]
+            result[prompt] = round(weight, 2)
     
     return result

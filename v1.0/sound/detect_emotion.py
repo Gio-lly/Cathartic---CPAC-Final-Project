@@ -10,8 +10,11 @@ from pythonosc import osc_server
 from pythonosc import udp_client
 
 from emotion_smoother import EmotionSmoother
+from emotions_to_prompt import emotions_to_prompts
 
 # Configuration
+
+LIGHTNING_WS_URL = "wss://9001-01kp66x818nvqtvyvcf9bkr5ze.cloudspaces.litng.ai"
 OSC_IP = "127.0.0.1"
 OSC_SEND_PORT = 9000  # Sending smoothed data out
 OSC_SEND_PORT_LIGHTNING = 9001  
@@ -40,7 +43,7 @@ print("Model loaded.")
 
 # Setup OSC sender for EmotionSmoother
 osc_sender = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT)
-osc_sender_lightning = udp_client.SimpleUDPClient(OSC_IP, OSC_SEND_PORT_LIGHTNING)
+# osc_sender_lightning = udp_client.SimpleUDPClient(OSC_IP_LIGHTNING, OSC_SEND_PORT_LIGHTNING)
 
 # Rate Configuration
 smoother = EmotionSmoother(
@@ -52,10 +55,12 @@ smoother = EmotionSmoother(
 smoother.start()
 
 smoother_lightning = EmotionSmoother(
-    osc_sender_lightning, 
+    client = None, 
     active_rate=ASCENT_RATE,      # Fast change when message arrives (0->1 in 0.5s)
     idle_rate=DESCENT_RATE,       # Very slow drift to neutral (1->0 in 20s)
-    idle_timeout=IDLE_TIMEOUT     # Wait 10 seconds before starting drift (For testing)
+    idle_timeout=IDLE_TIMEOUT,     # Wait 10 seconds before starting drift (For testing)
+    prompt_ws_url= LIGHTNING_WS_URL,
+    prompt_interval= 3.0
 )
 smoother_lightning.start()
 

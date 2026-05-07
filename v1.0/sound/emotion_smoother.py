@@ -1,24 +1,30 @@
 import time
 import threading
 import os
+import json
+import websocket
+import time
 
 def cls(): os.system('cls' if os.name=='nt' else 'clear')
 
 class EmotionSmoother:
     def __init__(self, client, active_rate=2.0, idle_rate=0.1, idle_timeout=5.0, 
-                 prompt_client = None, prompt_interval = 3.0):
+                 prompt_ws_url = None, prompt_interval = 3.0):
         """
         active_rate (float): Speed of change when a new message arrives.
         idle_rate (float): Speed of decay to neutral after timeout.
         idle_timeout (float): Seconds to wait before drifting to neutral.
         """
         self.client = client
-        self.prompt_client = prompt_client
         self.prompt_interval = prompt_interval
         self.fps = 30               # Update rate
         self.dt = 1.0 / self.fps    # Time per frame
         self.running = True
+        self.ws = None
         
+        if prompt_ws_url:
+            self._connect_ws(prompt_ws_url)
+
         # Configuration
         self.active_rate = active_rate
         self.idle_rate = idle_rate
@@ -36,6 +42,22 @@ class EmotionSmoother:
         self.lock = threading.Lock()
         print("[Engine] EmotionSmoother initialized.")
     
+    def _connect_ws(self, url):
+        """Connessione WebSocket con riconnessione automatica."""
+        self.ws_url = url
+        def connect():
+            while True:
+                try:
+                    print(f"[WS] Connessione a {url}...")
+                    self.ws = websocket.create_connection(url)
+                    print(f"[WS] Connesso!")
+                    break
+                except Exception as e:
+                    print(f"[WS] Errore connessione: {e}, riprovo in 3s...")
+                    time.sleep(3)
+        
+        threading.Thread(target=connect, daemon=True).start()
+
     def set_target(self, new_emotions):
         """Called by the main script when analysis is done."""
         with self.lock:
@@ -63,17 +85,34 @@ class EmotionSmoother:
             # --- ACTIVE MODE ---
             self.is_idle = False
             return self.target_values, self.active_rate
+    
 
+    def _reconnect_ws(self):
+        time.sleep(1)
+        while True:
+            try:
+                print(f"[WS] Riconnessione a {self.ws_url}...")
+                self.ws = websocket.create_connection(self.ws_url)
+                print(f"[WS] Riconnesso!")
+                break
+            except Exception as e:
+                print(f"[WS] Errore riconnessione: {e}, riprovo in 3s...")
+                time.sleep(3)
+
+    
     def _send_prompts(self):
-        """Sends top emotions mapped to a prompt to Lightning"""
-        if self.prompt_client is None:
+        if self.ws is None:
             return
-        
-        from emotion_smoother import emotions_to_prompts
+        from emotions_to_prompt import emotions_to_prompts
         prompts = emotions_to_prompts(self.current_values, top_n=3, threshold=0.1)
         if prompts:
-            print(f"[Prompts] Sending: {prompts}")
-            self.prompt_client.send_message("/prompts", json.dumps(prompts))
+            try:
+                self.ws.send(json.dumps(prompts))
+                print(f"[WS] Sent: {prompts}")
+            except Exception as e:
+                print(f"[WS] Send error: {e}")
+                self.ws = None  # forza riconnessione al prossimo ciclo
+                threading.Thread(target=self._reconnect_ws, daemon=True).start()
     
 
     def update_and_send(self):
