@@ -34,6 +34,9 @@ class ParticleSystem {
   float lowEnergy = 0;
   float midEnergy = 0;
   float highEnergy = 0;
+  
+  // ── Swirl / rotation ─────────────────────────────────────────
+  float swirlDirection = 1.0;
 
   // ── Edge ───────────────────────────────────────────────────
   float edgeWeight = 5.0;
@@ -335,7 +338,7 @@ class ParticleSystem {
 
     float bri = ((emotionBri + luminosita) * 0.5) * globalAlpha;
 
-    strokeWeight(particleW);
+    strokeWeight(particleW * 1.5);
 
     for (int i = 0; i < N; i++) {
       float sat = saturationForParticle(particles[i]);
@@ -380,11 +383,14 @@ class ParticleSystem {
     if (canFire && z > Config.Z_THRESH) {
       lastKickMs = millis();
       frameFromLastKick = 0;
-
+    
+      // Cambia direzione della rotazione a ogni kick
+      swirlDirection *= -1.0;
+    
       pickRandomModeSet();
-
+    
       if (Config.RESET_ON_MODE_CHANGE) resetParticles();
-
+    
       if (Config.FORCE_KICK_BOOST > 0) {
         float add = Config.FORCE_KICK_BOOST * kEnv;
         float maxExtra = Config.FORCE_GAIN_BASE * (Config.FORCE_KICK_MAX_MULT - 1.0);
@@ -430,37 +436,41 @@ class ParticleSystem {
     );
   }
 
-  void _processFFT(float[] fftBands) {
-    if (fftBands == null || fftBands.length < 3) return;
+float bandEnergy(float[] fftBands, int startBin, int endBin) {
+  if (fftBands == null || fftBands.length == 0) return 0;
 
-    float lowSum = 0;
-    float midSum = 0;
-    float highSum = 0;
+  startBin = constrain(startBin, 0, fftBands.length - 1);
+  endBin   = constrain(endBin, startBin + 1, fftBands.length);
 
-    int n = fftBands.length;
-    int lowEnd = n / 3;
-    int midEnd = 2 * n / 3;
+  float sum = 0;
 
-    for (int i = 0; i < lowEnd; i++) {
-      lowSum += fftBands[i];
-    }
-
-    for (int i = lowEnd; i < midEnd; i++) {
-      midSum += fftBands[i];
-    }
-
-    for (int i = midEnd; i < n; i++) {
-      highSum += fftBands[i];
-    }
-
-    float targetLow = constrain(lowSum / max(1, lowEnd), 0, 1);
-    float targetMid = constrain(midSum / max(1, midEnd - lowEnd), 0, 1);
-    float targetHigh = constrain(highSum / max(1, n - midEnd), 0, 1);
-
-    lowEnergy = lerp(lowEnergy, targetLow, 0.08);
-    midEnergy = lerp(midEnergy, targetMid, 0.08);
-    highEnergy = lerp(highEnergy, targetHigh, 0.08);
+  for (int i = startBin; i < endBin; i++) {
+    sum += fftBands[i];
   }
+
+  return sum / max(1, endBin - startBin);
+}
+
+
+
+ void _processFFT(float[] fftBands) {
+  if (fftBands == null || fftBands.length < 232) return;
+
+  // Con FFT_BANDS = 512 e sample rate ≈ 44100 Hz:
+  // ogni bin ≈ 43 Hz.
+  //
+  // Low:  20–250 Hz      → bin 1–6
+  // Mid:  250–2500 Hz    → bin 6–58
+  // High: 2500–10000 Hz  → bin 58–232
+
+  float targetLow  = constrain(bandEnergy(fftBands, 1, 6), 0, 1);
+  float targetMid  = constrain(bandEnergy(fftBands, 6, 58), 0, 1);
+  float targetHigh = constrain(bandEnergy(fftBands, 58, 232), 0, 1);
+
+  lowEnergy  = lerp(lowEnergy, targetLow, 0.08);
+  midEnergy  = lerp(midEnergy, targetMid, 0.08);
+  highEnergy = lerp(highEnergy, targetHigh, 0.08);
+}
 
   void _stepParticles() {
     float audioJitter = highEnergy * 2.0;
@@ -492,7 +502,7 @@ class ParticleSystem {
         p.vel.add(PVector.mult(radial, lowPush));
 
         PVector tangent = new PVector(-radial.y, radial.x);
-        p.vel.add(PVector.mult(tangent, swirl));
+        p.vel.add(PVector.mult(tangent, swirl * swirlDirection));
       }
 
       p.vel.mult(1.0 - dynamicDamping);
