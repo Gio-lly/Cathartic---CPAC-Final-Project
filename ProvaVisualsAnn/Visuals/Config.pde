@@ -7,7 +7,7 @@ static class Config {
 
   // ── Dev mode ─────────────────────────────────────────────
   static boolean DEV_MODE = true;   // <── metti false in produzione
-  static boolean USE_FILE_AUDIO = true; // <── metti false per microfono
+  static boolean USE_FILE_AUDIO = false; // <── metti false per microfono
 
   // ── Stati FSM ────────────────────────────────────────────
   static final int STATE_DISCLAIMER = 0;
@@ -55,7 +55,7 @@ static class Config {
 
   // ── Chladni / ParticleSystem ───────────────────────────────
   // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 30000;
+  static int    PARTICLE_COUNT        = 22000;
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
@@ -63,7 +63,7 @@ static class Config {
   // Velocity damping per frame (0 = no damping, 1 = instant stop)
   static float  DAMPING               = 0.05;
   // Random noise added to particle velocity each frame (breaks grid artifacts)
-  static float  JITTER                = 0.1;
+  static float  JITTER                = 0.05;
   // Pixel offset used for numerical gradient computation
   static float  EPS                   = 2.0;
   
@@ -117,15 +117,15 @@ static class Config {
   
   // ── Visuals ────────────────────────────────────────────────────────────────
   // Particle stroke weight at rest (no kick)
-  static float  BASE_STROKE_W         = 1.0;
+  static float  BASE_STROKE_W         = 0.8;
   // Particle stroke weight target during a strong kick envelope
-  static float  KICK_STROKE_W         = 2.2;
+  static float  KICK_STROKE_W         = 1.2;
   // Smoothing speed for stroke weight transitions (0..1)
   static float  W_FOLLOW              = 0.18;
   // Particle brightness at rest, HSB scale 0→100
-  static float  BASE_LUM              = 50.0;
+  static float  BASE_LUM              = 35.0;
   // Particle brightness target during a strong kick envelope, HSB scale 0→100
-  static float  KICK_LUM              = 100.0;
+  static float  KICK_LUM              = 65.0;
   // Smoothing speed for brightness transitions (0..1)
   static float  L_FOLLOW              = 0.18;
   // Particle hue, HSB scale 0→360 (0 = white/grey when saturation is 0)

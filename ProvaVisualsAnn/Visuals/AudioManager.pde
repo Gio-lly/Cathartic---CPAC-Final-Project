@@ -1,59 +1,84 @@
 // =============================================================
-//  AudioManager.pde  |  Wrapper Minim — FFT + ampiezza
+//  AudioManager.pde  |  Wrapper Sound — FFT + ampiezza + beat
 // =============================================================
-class AudioManager {
-  Minim         minim;
-  AudioInput    input;
-  AudioPlayer   player;
-  FFT           fft;
-  BeatDetect    beat;
-  boolean       active      = false;
-  boolean       fileMode    = false;   // true = file audio, false = microfono
-  float         smoothedAmplitude = 0;
-  float[]       fftValues;
 
-  static final int   FFT_BANDS    = 512;
-  static final float SMOOTH       = 0.15;
-  static final String AUDIO_FILE  = "Universel.mp3";
+class AudioManager {
+  Sound        sound;
+  AudioIn      input;
+  SoundFile    player;
+  FFT          fft;
+  Amplitude    amp;
+  BeatDetector beat;
+
+  boolean active            = false;
+  boolean fileMode          = false;
+  float   smoothedAmplitude = 0;
+  float[] fftValues;
+  float[] rawFft;
+
+  static final int    FFT_BANDS    = 512;
+  static final float  SMOOTH       = 0.15;
+  static final int INPUT_DEVICE_MAC = 7;   // BlackHole 2ch su Mac Anna
+  static final int INPUT_DEVICE_WIN = 41;   // default su Windows (es. VB-Cable)
+  static final String AUDIO_FILE   = "Universel.mp3";
 
   // ── Costruttore ──────────────────────────────────────────
   AudioManager() {
-    minim = new Minim(Visuals.this);
-    println("[AudioManager] Minim inizializzato");
+    sound = new Sound(Visuals.this);
+    Sound.list();   // stampa device disponibili in console (utile per debug)
+    fftValues = new float[FFT_BANDS];
+    rawFft    = new float[FFT_BANDS];
+    println("[AudioManager] Sound inizializzato");
   }
 
-  // ── Avvia microfono ───────────────────────────────────────
-  void start() {
-    startMic();
-  }
+  // ── Avvia microfono / linea (BlackHole) ──────────────────
+  void start() { startMic(); }
 
   void startMic() {
     if (active) stop();
     fileMode = false;
     try {
-      input = minim.getLineIn(Minim.STEREO, 1024);
-      _initDSP(input.bufferSize(), input.sampleRate());
-      active = true;
-      println("[AudioManager] Microfono aperto");
-    } catch (Exception e) {
-      println("[AudioManager] ERRORE microfono: " + e.getMessage());
-      active = false;
+      int deviceIndex;
+      String os = System.getProperty("os.name").toLowerCase();
+      
+      if (os.contains("mac")) {
+      deviceIndex = INPUT_DEVICE_MAC;
+      println("[AudioManager] Sistema: macOS, uso device " + deviceIndex);
+    } else if (os.contains("win")) {
+      deviceIndex = INPUT_DEVICE_WIN;
+      println("[AudioManager] Sistema: Windows, uso device " + deviceIndex);
+    } else {
+      deviceIndex = 41;   // fallback Linux/altro
+      println("[AudioManager] Sistema: " + os + ", uso device " + deviceIndex);
     }
+    
+    sound.inputDevice(deviceIndex);
+    input = new AudioIn(Visuals.this, 0);
+    input.start();
+    _initDSP(input);
+    active = true;
+    println("[AudioManager] Input device " + deviceIndex + " aperto");
+  } catch (Exception e) {
+    println("[AudioManager] ERRORE input: " + e.getMessage());
+    active = false;
   }
+}
+      
+      
 
   // ── Avvia file audio ──────────────────────────────────────
   void startFile() {
     if (active) stop();
     fileMode = true;
     try {
-      player = minim.loadFile(AUDIO_FILE, 1024);
-      if (player == null) {
-        println("[AudioManager] ERRORE: file " + AUDIO_FILE + " non trovato nella cartella data/");
+      player = new SoundFile(Visuals.this, AUDIO_FILE);
+      if (player.frames() <= 0) {
+        println("[AudioManager] ERRORE: file " + AUDIO_FILE + " non trovato in data/");
         active = false;
         return;
       }
       player.loop();   // loop continuo; usa player.play() per una sola riproduzione
-      _initDSP(player.bufferSize(), player.sampleRate());
+      _initDSP(player);
       active = true;
       println("[AudioManager] File audio avviato: " + AUDIO_FILE);
     } catch (Exception e) {
@@ -62,70 +87,84 @@ class AudioManager {
     }
   }
 
-  // ── Inizializza FFT e BeatDetect ──────────────────────────
-  void _initDSP(int bufSize, float sampleRate) {
-    fft  = new FFT(bufSize, sampleRate);
-    beat = new BeatDetect(bufSize, sampleRate);
-    beat.setSensitivity(100);
-    fftValues = new float[FFT_BANDS];
+  // ── Inizializza FFT, Amplitude e BeatDetector ────────────
+  // Due overload per AudioIn e SoundFile
+  void _initDSP(AudioIn source) {
+    fft  = new FFT(Visuals.this, FFT_BANDS);
+    amp  = new Amplitude(Visuals.this);
+    beat = new BeatDetector(Visuals.this);
+    fft.input(source);
+    amp.input(source);
+    beat.input(source);
+  }
+
+  void _initDSP(SoundFile source) {
+    fft  = new FFT(Visuals.this, FFT_BANDS);
+    amp  = new Amplitude(Visuals.this);
+    beat = new BeatDetector(Visuals.this);
+    fft.input(source);
+    amp.input(source);
+    beat.input(source);
   }
 
   // ── Chiude tutto ──────────────────────────────────────────
   void stop() {
-    if (input  != null) { input.close();  input  = null; }
-    if (player != null) { player.close(); player = null; }
+    if (input  != null) { input.stop();  input  = null; }
+    if (player != null) { player.stop(); player = null; }
     active   = false;
     fileMode = false;
     println("[AudioManager] Audio chiuso");
   }
 
-  // ── Buffer corrente (microfono o file) ────────────────────
-  AudioBuffer _mix() {
-    if (fileMode && player != null) return player.mix;
-    if (!fileMode && input  != null) return input.mix;
-    return null;
-  }
-
   // ── Ampiezza RMS con smoothing ────────────────────────────
   float getAmplitude() {
-    AudioBuffer mix = _mix();
-    if (!active || mix == null) return 0;
-    float raw = mix.level();
+    if (!active || amp == null) return 0;
+    float raw = amp.analyze();
     smoothedAmplitude += (raw - smoothedAmplitude) * SMOOTH;
     return smoothedAmplitude;
   }
 
-  // ── Valori FFT normalizzati ───────────────────────────────
+  // ── Valori FFT normalizzati con smoothing ─────────────────
   float[] getFFT() {
-    AudioBuffer mix = _mix();
-    if (!active || mix == null) return fftValues;
-    fft.forward(mix);
+    if (!active || fft == null) return fftValues;
+    fft.analyze(rawFft);
     for (int i = 0; i < FFT_BANDS; i++) {
-      float band = fft.getBand(i);
-      fftValues[i] += (band - fftValues[i]) * SMOOTH;
+      fftValues[i] += (rawFft[i] - fftValues[i]) * SMOOTH;
     }
     return fftValues;
   }
 
-  // ── Beat detection ────────────────────────────────────────
-  boolean isKick() {
-    AudioBuffer mix = _mix();
-    if (!active || beat == null || mix == null) return false;
-    beat.detect(mix);
-    return beat.isKick();
+  // ── Beat detection generico (Sound non distingue kick/snare) ──
+  boolean isBeat() {
+    if (!active || beat == null) return false;
+    return beat.isBeat();
   }
 
+  // ── Kick: energia nelle bande basse (~bassi/cassa) ───────
+  boolean isKick() {
+    if (!active || fftValues == null) return false;
+    float energy = 0;
+    int lo = 1, hi = 8;             // ~ 0-350 Hz a 44.1kHz / 512 bande
+    for (int i = lo; i < hi; i++) energy += fftValues[i];
+    energy /= (hi - lo);
+    return energy > 0.04;           // soglia da tarare
+  }
+
+  // ── Snare: energia nelle bande medio-alte ────────────────
   boolean isSnare() {
-    AudioBuffer mix = _mix();
-    if (!active || beat == null || mix == null) return false;
-    beat.detect(mix);
-    return beat.isSnare();
+    if (!active || fftValues == null) return false;
+    float energy = 0;
+    int lo = 40, hi = 100;          // ~ 1.5-4 kHz
+    for (int i = lo; i < hi; i++) energy += fftValues[i];
+    energy /= (hi - lo);
+    return energy > 0.02;           // soglia da tarare
   }
 
   // ── Utilità file mode ─────────────────────────────────────
-  boolean isFileMode()  { return fileMode; }
-  boolean isPlaying()   { return fileMode && player != null && player.isPlaying(); }
-  void   togglePause() {
+  boolean isFileMode() { return fileMode; }
+  boolean isPlaying()  { return fileMode && player != null && player.isPlaying(); }
+
+  void togglePause() {
     if (!fileMode || player == null) return;
     if (player.isPlaying()) player.pause();
     else                    player.play();
