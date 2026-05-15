@@ -34,8 +34,8 @@ class ParticleSystem {
   float lowEnergy = 0;
   float midEnergy = 0;
   float highEnergy = 0;
-  
-  // ── Swirl / rotation ─────────────────────────────────────────
+
+  // ── Swirl / rotation ───────────────────────────────────────
   float swirlDirection = 1.0;
 
   // ── Edge ───────────────────────────────────────────────────
@@ -165,19 +165,64 @@ class ParticleSystem {
     return "";
   }
 
+  // =============================================================
+  //  COLOR GRADIENT
+  // =============================================================
+
   void updateParticleColors() {
     if (emotionalEnergy <= 0.05) return;
 
     for (int i = 0; i < N; i++) {
-      if (random(1) < 0.02) {
-        String e = pickEmotionWeighted();
+      ChladniParticle p = particles[i];
 
-        if (!e.equals("")) {
-          particles[i].emotion = e;
-          particles[i].hue = hueForEmotion(e);
-        }
+      float targetHue = hueFromSpatialGradient(p.pos);
+
+      // Transizione morbida verso il colore del campo spaziale
+      p.hue = lerpHue(p.hue, targetHue, 0.12);
+    }
+  }
+
+  float hueFromSpatialGradient(PVector pos) {
+    ArrayList<Float> hues = new ArrayList<Float>();
+
+    for (String key : emotions.keySet()) {
+      if (key.equals("neutral")) continue;
+
+      float val = emotions.get(key);
+
+      if (val > 0.03) {
+        hues.add(hueForEmotion(key));
       }
     }
+
+    if (hues.size() == 0) return emotionHue;
+    if (hues.size() == 1) return hues.get(0);
+
+    // Più basso = gradienti più larghi e morbidi
+    // Più alto = gradienti più fitti e dettagliati
+    float scale = 0.002;
+
+    float t = noise(pos.x * scale, pos.y * scale);
+
+    float palettePos = t * (hues.size() - 1);
+
+    int idxA = floor(palettePos);
+    int idxB = min(idxA + 1, hues.size() - 1);
+
+    float localT = palettePos - idxA;
+
+    return lerpHue(hues.get(idxA), hues.get(idxB), localT);
+  }
+
+  float lerpHue(float a, float b, float t) {
+    float d = b - a;
+
+    if (abs(d) > 180) {
+      if (d > 0) a += 360;
+      else b += 360;
+    }
+
+    return (lerp(a, b, t) + 360) % 360;
   }
 
   float saturationForParticle(ChladniParticle p) {
@@ -251,13 +296,13 @@ class ParticleSystem {
     float tension = negativeEnergy;
     float openness = positiveEnergy;
 
-    float targetForceGain = Config.FORCE_GAIN_BASE * lerp(0.8, 1.8, tension);
-    float targetDamping = lerp(0.04, 0.12, openness);
-    float targetJitter = lerp(0.3, 1.8, emotionalEnergy);
+    float targetForceGain = Config.FORCE_GAIN_BASE * lerp(1.1, 1.5, tension);
+    float targetDamping = lerp(0.05, 0.13, openness);
+    float targetJitter = lerp(0.12, 0.75, emotionalEnergy);
 
     dynamicForceGain = lerp(dynamicForceGain, targetForceGain, 0.06);
-    dynamicDamping = lerp(dynamicDamping, targetDamping, 0.06);
-    dynamicJitter = lerp(dynamicJitter, targetJitter, 0.06);
+    dynamicDamping   = lerp(dynamicDamping, targetDamping, 0.06);
+    dynamicJitter    = lerp(dynamicJitter, targetJitter, 0.06);
 
     float targetModalComplexity = constrain(
       0.65 * negativeEnergy + 0.35 * emotionalEnergy - 0.25 * positiveEnergy,
@@ -338,7 +383,7 @@ class ParticleSystem {
 
     float bri = ((emotionBri + luminosita) * 0.5) * globalAlpha;
 
-    strokeWeight(particleW * 1.5);
+    strokeWeight(particleW * 2.5);
 
     for (int i = 0; i < N; i++) {
       float sat = saturationForParticle(particles[i]);
@@ -383,14 +428,13 @@ class ParticleSystem {
     if (canFire && z > Config.Z_THRESH) {
       lastKickMs = millis();
       frameFromLastKick = 0;
-    
-      // Cambia direzione della rotazione a ogni kick
+
       swirlDirection *= -1.0;
-    
+
       pickRandomModeSet();
-    
+
       if (Config.RESET_ON_MODE_CHANGE) resetParticles();
-    
+
       if (Config.FORCE_KICK_BOOST > 0) {
         float add = Config.FORCE_KICK_BOOST * kEnv;
         float maxExtra = Config.FORCE_GAIN_BASE * (Config.FORCE_KICK_MAX_MULT - 1.0);
@@ -436,46 +480,37 @@ class ParticleSystem {
     );
   }
 
-float bandEnergy(float[] fftBands, int startBin, int endBin) {
-  if (fftBands == null || fftBands.length == 0) return 0;
+  float bandEnergy(float[] fftBands, int startBin, int endBin) {
+    if (fftBands == null || fftBands.length == 0) return 0;
 
-  startBin = constrain(startBin, 0, fftBands.length - 1);
-  endBin   = constrain(endBin, startBin + 1, fftBands.length);
+    startBin = constrain(startBin, 0, fftBands.length - 1);
+    endBin   = constrain(endBin, startBin + 1, fftBands.length);
 
-  float sum = 0;
+    float sum = 0;
 
-  for (int i = startBin; i < endBin; i++) {
-    sum += fftBands[i];
+    for (int i = startBin; i < endBin; i++) {
+      sum += fftBands[i];
+    }
+
+    return sum / max(1, endBin - startBin);
   }
 
-  return sum / max(1, endBin - startBin);
-}
+  void _processFFT(float[] fftBands) {
+    if (fftBands == null || fftBands.length < 232) return;
 
+    float targetLow  = constrain(bandEnergy(fftBands, 1, 6), 0, 1);
+    float targetMid  = constrain(bandEnergy(fftBands, 6, 58), 0, 1);
+    float targetHigh = constrain(bandEnergy(fftBands, 58, 232), 0, 1);
 
-
- void _processFFT(float[] fftBands) {
-  if (fftBands == null || fftBands.length < 232) return;
-
-  // Con FFT_BANDS = 512 e sample rate ≈ 44100 Hz:
-  // ogni bin ≈ 43 Hz.
-  //
-  // Low:  20–250 Hz      → bin 1–6
-  // Mid:  250–2500 Hz    → bin 6–58
-  // High: 2500–10000 Hz  → bin 58–232
-
-  float targetLow  = constrain(bandEnergy(fftBands, 1, 6), 0, 1);
-  float targetMid  = constrain(bandEnergy(fftBands, 6, 58), 0, 1);
-  float targetHigh = constrain(bandEnergy(fftBands, 58, 232), 0, 1);
-
-  lowEnergy  = lerp(lowEnergy, targetLow, 0.08);
-  midEnergy  = lerp(midEnergy, targetMid, 0.08);
-  highEnergy = lerp(highEnergy, targetHigh, 0.08);
-}
+    lowEnergy  = lerp(lowEnergy, targetLow, 0.08);
+    midEnergy  = lerp(midEnergy, targetMid, 0.08);
+    highEnergy = lerp(highEnergy, targetHigh, 0.08);
+  }
 
   void _stepParticles() {
-    float audioJitter = highEnergy * 2.0;
-    float lowPush = lowEnergy * 0.02;
-    float swirl = midEnergy * 0.6;
+    float audioJitter = highEnergy * 0.35;
+    float lowPush = lowEnergy * 0.01;
+    float swirl = midEnergy * 0.25;
 
     PVector center = new PVector(width / 2.0, height / 2.0);
 
@@ -611,6 +646,7 @@ float bandEnergy(float[] fftBands, int startBin, int endBin) {
       particles[i].vel.set(random(-0.5, 0.5), random(-0.5, 0.5));
       particles[i].emotion = "";
       particles[i].hue = 0;
+      particles[i].nextHue = 0;
     }
   }
 
@@ -637,6 +673,7 @@ class ChladniParticle {
   PVector pos = new PVector();
   PVector vel = new PVector();
   float hue = 0;
+  float nextHue = 0;
   String emotion = "";
 }
 
