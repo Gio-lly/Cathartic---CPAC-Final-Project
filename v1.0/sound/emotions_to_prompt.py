@@ -32,7 +32,7 @@ EMOTION_PROMPTS = {
     "curiosity":    ["random bright arpeggios"],
     "realization":  ["tonic ethereal"],
     "surprise":     ["spurious melodies", "slight chaos"],
-    "neutral":      ["ambient"],
+    "neutral":      ["_neutral_audio_"], # Special keyword
 }
 
 def emotions_to_prompts(emotion_vector: dict, top_n: int = 3, threshold: float = 0.1) -> dict:
