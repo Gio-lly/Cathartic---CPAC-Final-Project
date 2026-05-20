@@ -9,7 +9,7 @@ def cls(): os.system('cls' if os.name=='nt' else 'clear')
 
 class EmotionSmoother:
     def __init__(self, client, active_rate=2.0, idle_rate=0.1, idle_timeout=5.0, 
-                 prompt_ws_url = None, prompt_interval = 3.0):
+                 prompt_ws_url = None, prompt_interval = 2.0):
         """
         active_rate (float): Speed of change when a new message arrives.
         idle_rate (float): Speed of decay to neutral after timeout.

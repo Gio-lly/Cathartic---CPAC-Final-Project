@@ -36,6 +36,7 @@ class AudioManager {
 
   void startMic() {
     if (active) stop();
+    delay(500); //small delay to wait for the line to be free
     fileMode = false;
     try {
       int deviceIndex;
@@ -51,7 +52,7 @@ class AudioManager {
       deviceIndex = 41;   // fallback Linux/altro
       println("[AudioManager] Sistema: " + os + ", uso device " + deviceIndex);
     }
-    
+    sound = new Sound(Visuals.this);
     sound.inputDevice(deviceIndex);
     input = new AudioIn(Visuals.this, 0);
     input.start();
