@@ -8,6 +8,8 @@ import pandas as pd
 from pythonosc import dispatcher
 from pythonosc import osc_server
 from pythonosc import udp_client
+import json
+
 
 from emotion_smoother import EmotionSmoother
 from emotions_to_prompt import emotions_to_prompts
@@ -84,6 +86,14 @@ def osc_text_handler(*args):
     # Send to smoother
     smoother.set_target(new_emotions)
     smoother_lightning.set_target(new_emotions)
+
+    if smoother_lightning.ws:
+        try:
+            smoother_lightning.ws.send(json.dumps({"__flush__":True}))
+            print("[FLUSH] Signal sent to lighting.")
+        except:
+            pass
+
     top = sorted(new_emotions.items(), key=lambda x: x[1], reverse=True)[:2]
     print(f"         > Targets: {top}")
 
