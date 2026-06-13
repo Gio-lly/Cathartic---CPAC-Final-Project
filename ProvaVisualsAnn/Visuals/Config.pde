@@ -18,7 +18,7 @@ static class Config {
 
   // ── Timing (millisecondi) ─────────────────────────────────
   static int DISCLAIMER_DURATION    = 5000;   // quanto resta il disclaimer
-  static int PARTICLES_DURATION     = 30000*4;  // durata fase particelle
+  static int PARTICLES_DURATION     = 30000*100;  // durata fase particelle
   static int THANKS_FADE_IN         = 1500;   // fade-in "Grazie"
   static int THANKS_HOLD            = 2000;   // quanto resta visibile
   static int THANKS_FADE_OUT        = 2000;   // fade-out "Grazie"
@@ -41,7 +41,7 @@ static class Config {
 
   static String INPUT_PLACEHOLDER = "Start typing...";
   
-  static int maxCharPrompt = 200;
+  static int maxCharPrompt = 400;
   
   // ── Sottotitolo disclaimer: blink ─────────────────────────
   static int    DISCLAIMER_SUB_OFFSET_Y  = 120;    // px sotto il testo principale
@@ -55,18 +55,18 @@ static class Config {
 
   // ── Chladni / ParticleSystem ───────────────────────────────
   // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 22000;
+  static int    PARTICLE_COUNT        = 30000;
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
-  static float  FORCE_GAIN_BASE       = 10.0;
+  static float  FORCE_GAIN_BASE       = 10.0; //10
   // Velocity damping per frame (0 = no damping, 1 = instant stop)
-  static float  DAMPING               = 0.05;
+  static float  DAMPING               = 0.10;
   // Random noise added to particle velocity each frame (breaks grid artifacts)
   static float  JITTER                = 0.05;
   // Pixel offset used for numerical gradient computation
-  static float  EPS                   = 2.0;
-  
+  static float  EPS                   = 0.001 ; //2.0
+
   // ── Edge well ──────────────────────────────────────────────────────────────
   // Minimum edge repulsion weight (at low volume)
   static float  EDGE_WEIGHT_MIN       = 0.0;
@@ -75,7 +75,7 @@ static class Config {
   // Minimum edge margin — how thin the border repulsion zone can get (0..1)
   static float  EDGE_MARGIN_MIN       = 0.001;
   // Maximum edge margin — how wide the border repulsion zone can get (0..1)
-  static float  EDGE_MARGIN_MAX       = 0.99;
+  static float  EDGE_MARGIN_MAX       = 0.90;
   // Exponent controlling how sharply the edge force ramps up (higher = harder wall)
   static float  EDGE_POWER            = 2.0;
   // Smoothing factor for edge weight transitions (0 = instant, 1 = never moves)
@@ -83,15 +83,15 @@ static class Config {
   
   // ── Volume → edge mapping ──────────────────────────────────────────────────
   // Amplitude level considered silence (lower bound for normalization)
-  static float  VOL_MIN               = 0.001;
+  static float  VOL_MIN               = 0.001*50; // 0.001
   // Amplitude level considered full volume (upper bound for normalization)
-  static float  VOL_MAX               = 0.3;
+  static float  VOL_MAX               = 0.5;
   
   // ── Kick → force impulse ───────────────────────────────────────────────────
   // Extra force added to particles on each detected kick (scales with kick strength)
-  static float  FORCE_KICK_BOOST      = 1500.0;
+  static float  FORCE_KICK_BOOST      = 50.0; // 1500
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
-  static float  FORCE_KICK_MAX_MULT   = 6.0;
+  static float  FORCE_KICK_MAX_MULT   = 6.0*1000; // 6
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
   static float  FORCE_DECAY           = 0.10;
   
@@ -109,7 +109,7 @@ static class Config {
   // Z-score threshold above which a discrete kick event is fired
   static float  Z_THRESH              = 0.8;
   // Lockout period after a kick fires — prevents double-triggers (milliseconds)
-  static int    REFRACTORY_MS         = 100;
+  static int    REFRACTORY_MS         = 1000 * 1; // 100
   // Z-score floor below which continuous kEnv is treated as zero (dead zone)
   static float  Z_FOLLOW_FLOOR        = 0.2;
   // Z-score range mapped to kEnv 0→1 (higher = less sensitive continuous follow)
@@ -123,16 +123,31 @@ static class Config {
   // Smoothing speed for stroke weight transitions (0..1)
   static float  W_FOLLOW              = 0.18;
   // Particle brightness at rest, HSB scale 0→100
-  static float  BASE_LUM              = 35.0;
+  static float  BASE_LUM              = 100.0;
   // Particle brightness target during a strong kick envelope, HSB scale 0→100
-  static float  KICK_LUM              = 65.0;
+  static float  KICK_LUM              = 100.0;
   // Smoothing speed for brightness transitions (0..1)
-  static float  L_FOLLOW              = 0.18;
+  static float  L_FOLLOW              = 0.10;
   // Particle hue, HSB scale 0→360 (0 = white/grey when saturation is 0)
   static float  PARTICLE_HUE          = 0.0;
   // Particle saturation, HSB scale 0→100 (0 = greyscale)
   static float  PARTICLE_SAT          = 0.0;
+  // Particle trasparancy
+  static float  PARTICLE_TRASP        = 5.0;
   
+  static float  PARTICLE_PERMANENCE   = 15.0;
+
+  // ── Color gradient drift ──────────────────────────────────────────────────
+  // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
+  static float  GRADIENT_DRIFT_MIN_SPEED = 0.1;
+  // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 1
+  static float  GRADIENT_DRIFT_MAX_SPEED = 1.5;
+  // Fraction of the spatial gradient occupied by the dominant emotion's color (0..1);
+  // the rest is split evenly among the other palette colors
+  static float  DOMINANT_EMOTION_SHARE   = 0.6;
+  // Smoothing speed for each particle's hue transitioning toward its target gradient color (0..1, lower = smoother/slower)
+  static float  HUE_TRANSITION_SPEED     = 0.01;
+
   // ── Modes ──────────────────────────────────────────────────────────────────
   // Probability of picking a circular Chladni mode vs rectangular (0 = always rect, 1 = always circular)
   static float   CIRCULAR_PROBABILITY  = 0.0;
@@ -142,6 +157,7 @@ static class Config {
   // ── Dev: testi preset ────────────────────────────────────
   static String[] DEV_PROMPTS = {
     "I hate my children.",
-    "I feel sad."
+    "I feel sad.",
+    "vghjilkhgftyuijkbhgvfcftyuhjbgvftyguhjbgvfygtuhjbgftyghjbvgftyguhjbvgcftyguhvcftyghvcfgtyghvftgghvcfgtghv"
   };
 }

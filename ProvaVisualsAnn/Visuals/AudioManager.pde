@@ -18,7 +18,7 @@ class AudioManager {
 
   static final int    FFT_BANDS    = 512;
   static final float  SMOOTH       = 0.15;
-  static final int INPUT_DEVICE_MAC = 7;   // BlackHole 2ch su Mac Anna
+  static final int INPUT_DEVICE_MAC = 13;   // BlackHole 2ch su Mac Anna
   static final int INPUT_DEVICE_WIN = 41;   // default su Windows (es. VB-Cable)
   static final String AUDIO_FILE   = "Universel.mp3";
 

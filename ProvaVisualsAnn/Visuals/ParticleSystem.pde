@@ -18,6 +18,15 @@ class ParticleSystem {
 
   float modalComplexity = 0;
 
+  // ── Color palette (persistente per lo state delle particelle) ─
+  ArrayList<String> paletteEmotions = new ArrayList<String>();
+  static final int MAX_PALETTE_COLORS = 3;
+  int paletteDominantIdx = 0;
+
+  // ── Spatial gradient drift ────────────────────────────────────
+  PVector gradientOffset = new PVector();
+  float gradientDriftT = 0;
+
   // ── Particles ──────────────────────────────────────────────
   ChladniParticle[] particles;
   int N;
@@ -178,40 +187,84 @@ class ParticleSystem {
       float targetHue = hueFromSpatialGradient(p.pos);
 
       // Transizione morbida verso il colore del campo spaziale
-      p.hue = lerpHue(p.hue, targetHue, 0.12);
+      p.hue = lerpHue(p.hue, targetHue, Config.HUE_TRANSITION_SPEED);
     }
   }
 
-  float hueFromSpatialGradient(PVector pos) {
-    ArrayList<Float> hues = new ArrayList<Float>();
+  // Aggiunge le emozioni che superano la soglia alla palette,
+  // senza mai rimuoverle (la palette si resetta solo a fine state, vedi clear()).
+  void _updatePalette() {
+    if (paletteEmotions.size() < MAX_PALETTE_COLORS) {
+      for (String key : emotions.keySet()) {
+        if (key.equals("neutral")) continue;
+        if (paletteEmotions.contains(key)) continue;
 
-    for (String key : emotions.keySet()) {
-      if (key.equals("neutral")) continue;
-
-      float val = emotions.get(key);
-
-      if (val > 0.03) {
-        hues.add(hueForEmotion(key));
+        if (emotions.get(key) > 0.03) {
+          paletteEmotions.add(key);
+          if (paletteEmotions.size() >= MAX_PALETTE_COLORS) break;
+        }
       }
     }
 
-    if (hues.size() == 0) return emotionHue;
-    if (hues.size() == 1) return hues.get(0);
+    // Tiene traccia di quale colore della palette corrisponde
+    // all'emozione attualmente più forte
+    paletteDominantIdx = 0;
+    float bestVal = -1;
+
+    for (int i = 0; i < paletteEmotions.size(); i++) {
+      float val = emo(paletteEmotions.get(i));
+      if (val > bestVal) {
+        bestVal = val;
+        paletteDominantIdx = i;
+      }
+    }
+  }
+
+  // Fa scorrere il gradiente spaziale dei colori nello spazio:
+  // la direzione cambia in modo organico (noise), la velocità segue l'emotionalEnergy.
+  void _updateGradientDrift() {
+    gradientDriftT += 0.002;
+
+    float angle = noise(gradientDriftT) * TWO_PI;
+    float speed = lerp(Config.GRADIENT_DRIFT_MIN_SPEED, Config.GRADIENT_DRIFT_MAX_SPEED, emotionalEnergy);
+
+    gradientOffset.x += cos(angle) * speed;
+    gradientOffset.y += sin(angle) * speed;
+  }
+
+  void resetPalette() {
+    paletteEmotions.clear();
+    gradientOffset.set(0, 0);
+  }
+
+  float hueFromSpatialGradient(PVector pos) {
+    int numColors = paletteEmotions.size();
+
+    if (numColors == 0) return emotionHue;
+    if (numColors == 1) return hueForEmotion(paletteEmotions.get(0));
 
     // Più basso = gradienti più larghi e morbidi
     // Più alto = gradienti più fitti e dettagliati
     float scale = 0.002;
 
-    float t = noise(pos.x * scale, pos.y * scale);
+    float t = noise((pos.x + gradientOffset.x) * scale, (pos.y + gradientOffset.y) * scale);
 
-    float palettePos = t * (hues.size() - 1);
+    // Nessuna interpolazione: ogni zona usa uno dei colori della palette.
+    // L'emozione dominante occupa una porzione più ampia dello spazio.
+    float dominantShare = Config.DOMINANT_EMOTION_SHARE;
+    float otherShare = (1.0 - dominantShare) / (numColors - 1);
 
-    int idxA = floor(palettePos);
-    int idxB = min(idxA + 1, hues.size() - 1);
+    float acc = 0;
 
-    float localT = palettePos - idxA;
+    for (int i = 0; i < numColors; i++) {
+      acc += (i == paletteDominantIdx) ? dominantShare : otherShare;
 
-    return lerpHue(hues.get(idxA), hues.get(idxB), localT);
+      if (t < acc || i == numColors - 1) {
+        return hueForEmotion(paletteEmotions.get(i));
+      }
+    }
+
+    return hueForEmotion(paletteEmotions.get(paletteDominantIdx));
   }
 
   float lerpHue(float a, float b, float t) {
@@ -226,19 +279,19 @@ class ParticleSystem {
   }
 
   float saturationForParticle(ChladniParticle p) {
-    if (emotionalEnergy <= 0.05) {
-      return lerp(0, emotionSat, 0.0);
-    }
+    float baseSat;
 
     if (isPositiveEmotion(p.emotion)) {
-      return lerp(20, 90, positiveEnergy);
+      baseSat = lerp(20, 90, positiveEnergy);
+    } else if (isNegativeEmotion(p.emotion)) {
+      baseSat = lerp(20, 90, negativeEnergy);
+    } else {
+      baseSat = lerp(10, 60, emotionalEnergy);
     }
 
-    if (isNegativeEmotion(p.emotion)) {
-      return lerp(20, 90, negativeEnergy);
-    }
-
-    return lerp(10, 60, emotionalEnergy);
+    // Saturazione minima (particelle bianche) quando "neutral" è massimo
+    float neutral = emo("neutral");
+    return baseSat * (1 - neutral);
   }
 
   void _processEmotions() {
@@ -298,7 +351,7 @@ class ParticleSystem {
 
     float targetForceGain = Config.FORCE_GAIN_BASE * lerp(1.1, 1.5, tension);
     float targetDamping = lerp(0.05, 0.13, openness);
-    float targetJitter = lerp(0.12, 0.75, emotionalEnergy);
+    float targetJitter = lerp(0.05, 0.3, emotionalEnergy);
 
     dynamicForceGain = lerp(dynamicForceGain, targetForceGain, 0.06);
     dynamicDamping   = lerp(dynamicDamping, targetDamping, 0.06);
@@ -368,6 +421,8 @@ class ParticleSystem {
   void update(float amplitude, float[] fftBands) {
     _processEmotions();
     _processEmotionPhysics();
+    _updatePalette();
+    _updateGradientDrift();
     updateParticleColors();
 
     _processAudio(amplitude);
@@ -379,7 +434,7 @@ class ParticleSystem {
   void render() {
     pushMatrix();
 
-    colorMode(HSB, 360, 100, 100);
+    colorMode(HSB, 360, 100, 100, 255);
 
     float bri = ((emotionBri + luminosita) * 0.5) * globalAlpha;
 
@@ -387,7 +442,7 @@ class ParticleSystem {
 
     for (int i = 0; i < N; i++) {
       float sat = saturationForParticle(particles[i]);
-      stroke(particles[i].hue, sat, bri);
+      stroke(particles[i].hue, sat, bri, Config.PARTICLE_TRASP);
       point(particles[i].pos.x, particles[i].pos.y);
     }
 
@@ -397,6 +452,7 @@ class ParticleSystem {
 
   void clear() {
     resetParticles();
+    resetPalette();
   }
 
   int count() {

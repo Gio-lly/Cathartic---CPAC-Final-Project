@@ -63,7 +63,7 @@ HashMap<String, Float> emotions = new HashMap<String, Float>();
 
 // =============================================================
 void setup() {
-  size(1280, 720);           // Cambia con fullScreen() per l'installazione
+  size(1280, 720, P2D);           // Cambia con fullScreen() per l'installazione
   //fullScreen(2);
   pixelDensity(2);           // Migliore qualità pixels
   
@@ -107,7 +107,7 @@ void draw() {
     rectMode(CORNER);
     noStroke();
 
-    fill(0, 35);   // prova 35 invece di 18: scia più corta e meno caos
+    fill(0, Config.PARTICLE_PERMANENCE);   // prova 35 invece di 18: scia più corta e meno caos
     rect(0, 0, width, height);
 
     popStyle();
