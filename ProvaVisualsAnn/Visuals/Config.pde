@@ -59,7 +59,7 @@ static class Config {
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
-  static float  FORCE_GAIN_BASE       = 10.0; //10
+  static float  FORCE_GAIN_BASE       = 10.0/2; //10
   // Velocity damping per frame (0 = no damping, 1 = instant stop)
   static float  DAMPING               = 0.10;
   // Random noise added to particle velocity each frame (breaks grid artifacts)
@@ -69,15 +69,15 @@ static class Config {
 
   // ── Particle repulsion ───────────────────────────────────────────────────────
   // Distance (px) within which two particles push each other apart
-  static float  REPULSION_RADIUS      = 6.0;
+  static float  REPULSION_RADIUS      = 6.0 / 2;
   // Strength of the repulsion at zero distance, fading linearly to 0 at REPULSION_RADIUS
-  static float  REPULSION_STRENGTH    = 0.04;
+  static float  REPULSION_STRENGTH    = 0.04/10;
 
   // ── Particle cohesion ─────────────────────────────────────────────────────────
   // Distance (px) within which two particles attract each other
-  static float  COHESION_RADIUS       = 8.0;
+  static float  COHESION_RADIUS       = 8.0 / 2;
   // Strength of the attraction at COHESION_RADIUS, fading linearly to 0 at distance 0
-  static float  COHESION_STRENGTH     = 0.005;
+  static float  COHESION_STRENGTH     = 0.005/10;
 
   // ── Edge well ──────────────────────────────────────────────────────────────
   // Minimum edge repulsion weight (at low volume)
@@ -101,7 +101,7 @@ static class Config {
   
   // ── Kick → force impulse ───────────────────────────────────────────────────
   // Extra force added to particles on each detected kick (scales with kick strength)
-  static float  FORCE_KICK_BOOST      = 20.0; // 50
+  static float  FORCE_KICK_BOOST      = 20.0/10; // 50
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
   static float  FORCE_KICK_MAX_MULT   = 6.0*1000; // 6
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
@@ -121,7 +121,7 @@ static class Config {
   // Z-score threshold above which a discrete kick event is fired
   static float  Z_THRESH              = 0.8;
   // Lockout period after a kick fires — prevents double-triggers (milliseconds)
-  static int    REFRACTORY_MS         = 1000 * 2; // 100
+  static int    REFRACTORY_MS         = 1000 * 4; // 100
   // Z-score floor below which continuous kEnv is treated as zero (dead zone)
   static float  Z_FOLLOW_FLOOR        = 0.2;
   // Z-score range mapped to kEnv 0→1 (higher = less sensitive continuous follow)
@@ -145,9 +145,9 @@ static class Config {
   // Particle saturation, HSB scale 0→100 (0 = greyscale)
   static float  PARTICLE_SAT          = 0.0;
   // Particle trasparancy
-  static float  PARTICLE_TRASP        = 100.0;
+  static float  PARTICLE_TRASP        = 120.0;
   
-  static float  PARTICLE_PERMANENCE   = 20.0;
+  static float  PARTICLE_PERMANENCE   = 30.0;
 
   // ── Color gradient drift ──────────────────────────────────────────────────
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
