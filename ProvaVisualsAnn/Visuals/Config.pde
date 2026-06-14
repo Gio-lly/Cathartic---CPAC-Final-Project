@@ -55,7 +55,7 @@ static class Config {
 
   // ── Chladni / ParticleSystem ───────────────────────────────
   // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 30000;
+  static int    PARTICLE_COUNT        = 30000/4;
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
@@ -66,6 +66,18 @@ static class Config {
   static float  JITTER                = 0.05;
   // Pixel offset used for numerical gradient computation
   static float  EPS                   = 0.001 ; //2.0
+
+  // ── Particle repulsion ───────────────────────────────────────────────────────
+  // Distance (px) within which two particles push each other apart
+  static float  REPULSION_RADIUS      = 6.0;
+  // Strength of the repulsion at zero distance, fading linearly to 0 at REPULSION_RADIUS
+  static float  REPULSION_STRENGTH    = 0.04;
+
+  // ── Particle cohesion ─────────────────────────────────────────────────────────
+  // Distance (px) within which two particles attract each other
+  static float  COHESION_RADIUS       = 8.0;
+  // Strength of the attraction at COHESION_RADIUS, fading linearly to 0 at distance 0
+  static float  COHESION_STRENGTH     = 0.005;
 
   // ── Edge well ──────────────────────────────────────────────────────────────
   // Minimum edge repulsion weight (at low volume)
@@ -89,7 +101,7 @@ static class Config {
   
   // ── Kick → force impulse ───────────────────────────────────────────────────
   // Extra force added to particles on each detected kick (scales with kick strength)
-  static float  FORCE_KICK_BOOST      = 50.0; // 1500
+  static float  FORCE_KICK_BOOST      = 20.0; // 50
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
   static float  FORCE_KICK_MAX_MULT   = 6.0*1000; // 6
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
@@ -109,7 +121,7 @@ static class Config {
   // Z-score threshold above which a discrete kick event is fired
   static float  Z_THRESH              = 0.8;
   // Lockout period after a kick fires — prevents double-triggers (milliseconds)
-  static int    REFRACTORY_MS         = 1000 * 1; // 100
+  static int    REFRACTORY_MS         = 1000 * 2; // 100
   // Z-score floor below which continuous kEnv is treated as zero (dead zone)
   static float  Z_FOLLOW_FLOOR        = 0.2;
   // Z-score range mapped to kEnv 0→1 (higher = less sensitive continuous follow)
@@ -117,9 +129,9 @@ static class Config {
   
   // ── Visuals ────────────────────────────────────────────────────────────────
   // Particle stroke weight at rest (no kick)
-  static float  BASE_STROKE_W         = 0.8;
+  static float  BASE_STROKE_W         = 0.8/4; // 0.8
   // Particle stroke weight target during a strong kick envelope
-  static float  KICK_STROKE_W         = 1.2;
+  static float  KICK_STROKE_W         = BASE_STROKE_W; 
   // Smoothing speed for stroke weight transitions (0..1)
   static float  W_FOLLOW              = 0.18;
   // Particle brightness at rest, HSB scale 0→100
@@ -133,9 +145,9 @@ static class Config {
   // Particle saturation, HSB scale 0→100 (0 = greyscale)
   static float  PARTICLE_SAT          = 0.0;
   // Particle trasparancy
-  static float  PARTICLE_TRASP        = 5.0;
+  static float  PARTICLE_TRASP        = 100.0;
   
-  static float  PARTICLE_PERMANENCE   = 15.0;
+  static float  PARTICLE_PERMANENCE   = 20.0;
 
   // ── Color gradient drift ──────────────────────────────────────────────────
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0

@@ -39,6 +39,16 @@ class ParticleSystem {
   float dynamicJitter;
   float dynamicForceGain;
 
+  // ── Particle repulsion (spatial hash grid) ──────────────────
+  IntList[] repulsionGrid;
+  int repulsionCols, repulsionRows;
+  float repulsionCellSize;
+
+  // ── Particle cohesion (spatial hash grid) ───────────────────
+  IntList[] cohesionGrid;
+  int cohesionCols, cohesionRows;
+  float cohesionCellSize;
+
   // ── FFT bands ──────────────────────────────────────────────
   float lowEnergy = 0;
   float midEnergy = 0;
@@ -86,6 +96,20 @@ class ParticleSystem {
     dynamicJitter = Config.JITTER;
 
     for (int i = 0; i < N; i++) particles[i] = new ChladniParticle();
+
+    repulsionCellSize = max(1.0, Config.REPULSION_RADIUS);
+    repulsionCols = ceil(width / repulsionCellSize) + 1;
+    repulsionRows = ceil(height / repulsionCellSize) + 1;
+
+    repulsionGrid = new IntList[repulsionCols * repulsionRows];
+    for (int i = 0; i < repulsionGrid.length; i++) repulsionGrid[i] = new IntList();
+
+    cohesionCellSize = max(1.0, Config.COHESION_RADIUS);
+    cohesionCols = ceil(width / cohesionCellSize) + 1;
+    cohesionRows = ceil(height / cohesionCellSize) + 1;
+
+    cohesionGrid = new IntList[cohesionCols * cohesionRows];
+    for (int i = 0; i < cohesionGrid.length; i++) cohesionGrid[i] = new IntList();
 
     resetParticles();
     pickRandomModeSet();
@@ -351,7 +375,7 @@ class ParticleSystem {
 
     float targetForceGain = Config.FORCE_GAIN_BASE * lerp(1.1, 1.5, tension);
     float targetDamping = lerp(0.05, 0.13, openness);
-    float targetJitter = lerp(0.05, 0.3, emotionalEnergy);
+    float targetJitter = lerp(0.05, 0.3, emotionalEnergy); // 0.05 0.3
 
     dynamicForceGain = lerp(dynamicForceGain, targetForceGain, 0.06);
     dynamicDamping   = lerp(dynamicDamping, targetDamping, 0.06);
@@ -570,6 +594,9 @@ class ParticleSystem {
 
     PVector center = new PVector(width / 2.0, height / 2.0);
 
+    _buildRepulsionGrid();
+    _buildCohesionGrid();
+
     for (int i = 0; i < N; i++) {
       ChladniParticle p = particles[i];
 
@@ -584,6 +611,9 @@ class ParticleSystem {
 
       p.vel.x += random(-totalJitter, totalJitter);
       p.vel.y += random(-totalJitter, totalJitter);
+
+      _applyRepulsion(p, i);
+      _applyCohesion(p, i);
 
       PVector radial = PVector.sub(p.pos, center);
 
@@ -605,6 +635,106 @@ class ParticleSystem {
 
         p.pos.set(width / 2 + cos(ang) * rad, height / 2 + sin(ang) * rad);
         p.vel.set(random(-0.5, 0.5), random(-0.5, 0.5));
+      }
+    }
+  }
+
+  // Bucketta le particelle nella grid spaziale (celle di lato REPULSION_RADIUS),
+  // usata per trovare velocemente i vicini nella repulsione.
+  void _buildRepulsionGrid() {
+    for (IntList cell : repulsionGrid) cell.clear();
+
+    for (int i = 0; i < N; i++) {
+      int cx = (int) constrain(particles[i].pos.x / repulsionCellSize, 0, repulsionCols - 1);
+      int cy = (int) constrain(particles[i].pos.y / repulsionCellSize, 0, repulsionRows - 1);
+      repulsionGrid[cy * repulsionCols + cx].append(i);
+    }
+  }
+
+  // Leggera repulsione reciproca tra particelle vicine: evita che collassino
+  // tutte nello stesso punto e fa "ingrassare" le linee del pattern.
+  void _applyRepulsion(ChladniParticle p, int idx) {
+    float radius = Config.REPULSION_RADIUS;
+    if (radius <= 0 || Config.REPULSION_STRENGTH == 0) return;
+
+    float radiusSq = radius * radius;
+
+    int cx = (int) constrain(p.pos.x / repulsionCellSize, 0, repulsionCols - 1);
+    int cy = (int) constrain(p.pos.y / repulsionCellSize, 0, repulsionRows - 1);
+
+    int gx0 = max(0, cx - 1), gx1 = min(repulsionCols - 1, cx + 1);
+    int gy0 = max(0, cy - 1), gy1 = min(repulsionRows - 1, cy + 1);
+
+    for (int gy = gy0; gy <= gy1; gy++) {
+      for (int gx = gx0; gx <= gx1; gx++) {
+        IntList cell = repulsionGrid[gy * repulsionCols + gx];
+
+        for (int k = 0; k < cell.size(); k++) {
+          int j = cell.get(k);
+          if (j == idx) continue;
+
+          float dx = p.pos.x - particles[j].pos.x;
+          float dy = p.pos.y - particles[j].pos.y;
+          float distSq = dx * dx + dy * dy;
+
+          if (distSq < radiusSq && distSq > 1e-6) {
+            float dist = sqrt(distSq);
+            float falloff = 1.0 - dist / radius;
+
+            p.vel.x += (dx / dist) * Config.REPULSION_STRENGTH * falloff;
+            p.vel.y += (dy / dist) * Config.REPULSION_STRENGTH * falloff;
+          }
+        }
+      }
+    }
+  }
+
+  // Bucketta le particelle nella grid spaziale (celle di lato COHESION_RADIUS),
+  // usata per trovare velocemente i vicini nella coesione.
+  void _buildCohesionGrid() {
+    for (IntList cell : cohesionGrid) cell.clear();
+
+    for (int i = 0; i < N; i++) {
+      int cx = (int) constrain(particles[i].pos.x / cohesionCellSize, 0, cohesionCols - 1);
+      int cy = (int) constrain(particles[i].pos.y / cohesionCellSize, 0, cohesionRows - 1);
+      cohesionGrid[cy * cohesionCols + cx].append(i);
+    }
+  }
+
+  // Leggera attrazione reciproca tra particelle vicine: tiene uniti i gruppi
+  // di particelle, dando più corpo alle linee del pattern senza farle collassare.
+  void _applyCohesion(ChladniParticle p, int idx) {
+    float radius = Config.COHESION_RADIUS;
+    if (radius <= 0 || Config.COHESION_STRENGTH == 0) return;
+
+    float radiusSq = radius * radius;
+
+    int cx = (int) constrain(p.pos.x / cohesionCellSize, 0, cohesionCols - 1);
+    int cy = (int) constrain(p.pos.y / cohesionCellSize, 0, cohesionRows - 1);
+
+    int gx0 = max(0, cx - 1), gx1 = min(cohesionCols - 1, cx + 1);
+    int gy0 = max(0, cy - 1), gy1 = min(cohesionRows - 1, cy + 1);
+
+    for (int gy = gy0; gy <= gy1; gy++) {
+      for (int gx = gx0; gx <= gx1; gx++) {
+        IntList cell = cohesionGrid[gy * cohesionCols + gx];
+
+        for (int k = 0; k < cell.size(); k++) {
+          int j = cell.get(k);
+          if (j == idx) continue;
+
+          float dx = particles[j].pos.x - p.pos.x;
+          float dy = particles[j].pos.y - p.pos.y;
+          float distSq = dx * dx + dy * dy;
+
+          if (distSq < radiusSq && distSq > 1e-6) {
+            float dist = sqrt(distSq);
+            float falloff = dist / radius;
+
+            p.vel.x += (dx / dist) * Config.COHESION_STRENGTH * falloff;
+            p.vel.y += (dy / dist) * Config.COHESION_STRENGTH * falloff;
+          }
+        }
       }
     }
   }

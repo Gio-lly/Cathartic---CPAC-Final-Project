@@ -107,7 +107,7 @@ void draw() {
     rectMode(CORNER);
     noStroke();
 
-    fill(0, Config.PARTICLE_PERMANENCE);   // prova 35 invece di 18: scia più corta e meno caos
+    fill(Config.BG_COLOR, Config.PARTICLE_PERMANENCE);   // prova 35 invece di 18: scia più corta e meno caos
     rect(0, 0, width, height);
 
     popStyle();
