@@ -61,6 +61,7 @@ NetAddress pythonLocation;
 // ── Hash map to store emotions ──────────────────────────────
 HashMap<String, Float> emotions = new HashMap<String, Float>();
 
+
 // =============================================================
 void setup() {
   size(1280, 720, P2D);           // Cambia con fullScreen() per l'installazione
@@ -109,6 +110,7 @@ void draw() {
 
     fill(Config.BG_COLOR, Config.PARTICLE_PERMANENCE);   // prova 35 invece di 18: scia più corta e meno caos
     rect(0, 0, width, height);
+    
 
     popStyle();
 

@@ -25,7 +25,7 @@ static class Config {
   static int PARTICLES_FADEOUT_TIME = 3000;   // fade-out particelle
 
   // ── Colori ───────────────────────────────────────────────
-  static int BG_COLOR               = 5;               // nero
+  static int BG_COLOR               = 0;               // nero
   static int TEXT_COLOR             = 0xFFFFFFFF;       // bianco
   static int PARTICLE_BASE_COLOR    = 0xFFFFFFFF;
   static int DISCLAIMER_TEXT_COLOR  = 0xFFAAAAAA;       // grigio chiaro
@@ -55,7 +55,7 @@ static class Config {
 
   // ── Chladni / ParticleSystem ───────────────────────────────
   // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 30000/4;
+  static int    PARTICLE_COUNT        = 30000/3;
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
@@ -71,13 +71,13 @@ static class Config {
   // Distance (px) within which two particles push each other apart
   static float  REPULSION_RADIUS      = 6.0 / 2;
   // Strength of the repulsion at zero distance, fading linearly to 0 at REPULSION_RADIUS
-  static float  REPULSION_STRENGTH    = 0.04/10;
+  static float  REPULSION_STRENGTH    = 0.04/1;
 
   // ── Particle cohesion ─────────────────────────────────────────────────────────
   // Distance (px) within which two particles attract each other
   static float  COHESION_RADIUS       = 8.0 / 2;
   // Strength of the attraction at COHESION_RADIUS, fading linearly to 0 at distance 0
-  static float  COHESION_STRENGTH     = 0.005/10;
+  static float  COHESION_STRENGTH     = 0.005/1;
 
   // ── Edge well ──────────────────────────────────────────────────────────────
   // Minimum edge repulsion weight (at low volume)
@@ -146,14 +146,14 @@ static class Config {
   static float  PARTICLE_SAT          = 0.0;
   // Particle trasparancy
   static float  PARTICLE_TRASP        = 120.0;
-  
+  // Particle smooth transitions vs not black background
   static float  PARTICLE_PERMANENCE   = 30.0;
 
   // ── Color gradient drift ──────────────────────────────────────────────────
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
-  static float  GRADIENT_DRIFT_MIN_SPEED = 0.1;
+  static float  GRADIENT_DRIFT_MIN_SPEED = 0.1/2;
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 1
-  static float  GRADIENT_DRIFT_MAX_SPEED = 1.5;
+  static float  GRADIENT_DRIFT_MAX_SPEED = 1.5/2;
   // Fraction of the spatial gradient occupied by the dominant emotion's color (0..1);
   // the rest is split evenly among the other palette colors
   static float  DOMINANT_EMOTION_SHARE   = 0.6;
