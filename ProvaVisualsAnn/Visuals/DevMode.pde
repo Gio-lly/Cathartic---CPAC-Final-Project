@@ -55,6 +55,7 @@ class DevMode {
       lines.add("← → : cambia stato");
       lines.add("1-5  : carica testo preset");
       lines.add("<    : toggle DEV overlay");
+      lines.add("0    : toggle linee campo Chladni");
       lines.add("SPAZIO: skip disclaimer/thanks");
       lines.add("─────────────────────────────");
       lines.add("Testo attuale:");
@@ -135,9 +136,17 @@ class DevMode {
       println("[DevMode] Overlay " + (overlayVisible ? "visibile" : "nascosto"));
       return;
     }
+
+    // 0: toggle overlay linee nodali del campo Chladni
+    if (key == '0') {
+      showChladniField = !showChladniField;
+      println("[DevMode] Linee campo Chladni " + (showChladniField ? "visibili" : "nascoste"));
+      return;
+    }
   }
 
   boolean overlayVisible = true;
+  boolean showChladniField = false;
 
   // Override render per rispettare la flag
   // (render() chiama questa invece di disegnare direttamente)

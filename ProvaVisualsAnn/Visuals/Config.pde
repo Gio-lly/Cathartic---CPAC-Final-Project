@@ -18,7 +18,7 @@ static class Config {
 
   // ── Timing (millisecondi) ─────────────────────────────────
   static int DISCLAIMER_DURATION    = 5000;   // quanto resta il disclaimer
-  static int PARTICLES_DURATION     = 30000*100;  // durata fase particelle
+  static int PARTICLES_DURATION     = 30000*10;  // durata fase particelle
   static int THANKS_FADE_IN         = 1500;   // fade-in "Grazie"
   static int THANKS_HOLD            = 2000;   // quanto resta visibile
   static int THANKS_FADE_OUT        = 2000;   // fade-out "Grazie"
@@ -41,8 +41,21 @@ static class Config {
 
   static String INPUT_PLACEHOLDER = "Start typing...";
   
-  static int maxCharPrompt = 400;
-  
+  static int maxCharPrompt = 650;
+
+  // ── Box del testo del prompt ───────────────────────────────
+  // Dimensioni (come frazione di width/height) del box di testo usato sia per
+  // mostrare il prompt durante l'input, sia per generare le posizioni delle
+  // particelle da quel testo (buildFromText). Tenerle qui evita che i due
+  // punti vadano fuori sincrono quando si cambia lo spazio occupato dal prompt.
+  static float PROMPT_BOX_W_FRAC = 0.75; // larghezza box testo
+  static float PROMPT_BOX_H_FRAC = 1.0;  // altezza box testo
+
+  // Offset verticale (come frazione di height, dal centro schermo) del contatore
+  // "Remaining characters". Indipendente da PROMPT_BOX_H_FRAC: se il box del
+  // prompt occupa tutta l'altezza, il contatore resta comunque visibile.
+  static float REMAINING_CHARS_OFFSET_FRAC = 0.4;
+
   // ── Sottotitolo disclaimer: blink ─────────────────────────
   static int    DISCLAIMER_SUB_OFFSET_Y  = 120;    // px sotto il testo principale
   static int    DISCLAIMER_SUB_BLINK_IN  = 800;   // ms fade-in
@@ -55,11 +68,11 @@ static class Config {
 
   // ── Chladni / ParticleSystem ───────────────────────────────
   // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 30000/3;
+  static int    PARTICLE_COUNT        = 20000;
   
   // ── Field physics ──────────────────────────────────────────────────────────
   // Base strength of the force pushing particles toward field minima
-  static float  FORCE_GAIN_BASE       = 10.0/2; //10
+  static float  FORCE_GAIN_BASE       = 5.0 *5; //10
   // Velocity damping per frame (0 = no damping, 1 = instant stop)
   static float  DAMPING               = 0.10;
   // Random noise added to particle velocity each frame (breaks grid artifacts)
@@ -68,16 +81,20 @@ static class Config {
   static float  EPS                   = 0.001 ; //2.0
 
   // ── Particle repulsion ───────────────────────────────────────────────────────
+  // Enable/disable the repulsion force computation entirely
+  static boolean ENABLE_REPULSION     = true;
   // Distance (px) within which two particles push each other apart
   static float  REPULSION_RADIUS      = 6.0 / 2;
   // Strength of the repulsion at zero distance, fading linearly to 0 at REPULSION_RADIUS
-  static float  REPULSION_STRENGTH    = 0.04/1;
+  static float  REPULSION_STRENGTH    = 0.04*10;
 
   // ── Particle cohesion ─────────────────────────────────────────────────────────
+  // Enable/disable the cohesion force computation entirely
+  static boolean ENABLE_COHESION      = true;
   // Distance (px) within which two particles attract each other
-  static float  COHESION_RADIUS       = 8.0 / 2;
+  static float  COHESION_RADIUS       = 8.0 / 4;
   // Strength of the attraction at COHESION_RADIUS, fading linearly to 0 at distance 0
-  static float  COHESION_STRENGTH     = 0.005/1;
+  static float  COHESION_STRENGTH     = 0.005*4;
 
   // ── Edge well ──────────────────────────────────────────────────────────────
   // Minimum edge repulsion weight (at low volume)
@@ -101,7 +118,7 @@ static class Config {
   
   // ── Kick → force impulse ───────────────────────────────────────────────────
   // Extra force added to particles on each detected kick (scales with kick strength)
-  static float  FORCE_KICK_BOOST      = 20.0/10; // 50
+  static float  FORCE_KICK_BOOST      = 20.0/15; // 50
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
   static float  FORCE_KICK_MAX_MULT   = 6.0*1000; // 6
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
@@ -145,9 +162,9 @@ static class Config {
   // Particle saturation, HSB scale 0→100 (0 = greyscale)
   static float  PARTICLE_SAT          = 0.0;
   // Particle trasparancy
-  static float  PARTICLE_TRASP        = 120.0;
+  static float  PARTICLE_TRASP        = 160.0;
   // Particle smooth transitions vs not black background
-  static float  PARTICLE_PERMANENCE   = 30.0;
+  static float  PARTICLE_PERMANENCE   = 30.0/2;
 
   // ── Color gradient drift ──────────────────────────────────────────────────
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
@@ -161,6 +178,12 @@ static class Config {
   static float  HUE_TRANSITION_SPEED     = 0.01;
 
   // ── Modes ──────────────────────────────────────────────────────────────────
+  // Zoom factor applied to the Chladni mode functions: 1 = unchanged, >1 = zoom in on the
+  // pattern center so the same modes produce larger figures (edge well is unaffected)
+  static float   CHLADNI_SCALE         = 1.2;
+  // Baseline added to modalComplexity so even a neutral/calm state still produces
+  // reasonably intricate Chladni figures (0 = old behaviour, 1 = always max complexity)
+  static float   MODAL_COMPLEXITY_BASE = 0.3;
   // Probability of picking a circular Chladni mode vs rectangular (0 = always rect, 1 = always circular)
   static float   CIRCULAR_PROBABILITY  = 0.0;
   // If true, particles are scattered randomly whenever the mode changes on a kick

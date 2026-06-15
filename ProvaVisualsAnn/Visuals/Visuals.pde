@@ -73,6 +73,7 @@ void setup() {
   textMode(MODEL);
   colorMode(RGB, 255);
   
+  
   // Font (metti un .ttf nella cartella /data oppure usa createFont)
   fontMain  = createFont("SourceCodePro-Regular", 32, true);
   fontSmall = createFont("SourceCodePro-Regular", 16, true);
@@ -122,6 +123,10 @@ void draw() {
 
   sm.update();
   sm.render();
+
+  if (Config.DEV_MODE && dev.showChladniField) {
+    ps.renderChladniField();
+  }
 
   if (Config.DEV_MODE) {
     dev.render();

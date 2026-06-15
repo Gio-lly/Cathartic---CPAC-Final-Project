@@ -79,7 +79,7 @@ class DisclaimerState extends BaseState {
 
   // Solo qui avviene la transizione
   void handleKey() {
-    if (key != '<' && keyCode != RIGHT && keyCode != LEFT) {
+    if (key != '<' && key != '0' && keyCode != RIGHT && keyCode != LEFT) {
 
       sm.changeState(Config.STATE_INPUT);
 
@@ -118,8 +118,8 @@ class DisclaimerState extends BaseState {
 
       boolean isPlaceholder = inputHandler.getText().length() == 0;
 
-      float maxW = width * 0.5;  // larghezza massima prima del wrap
-      float maxH = height * 0.5; // altezza massima testo
+      float maxW = width * Config.PROMPT_BOX_W_FRAC;  // larghezza massima prima del wrap
+      float maxH = height * Config.PROMPT_BOX_H_FRAC; // altezza massima testo
       int bufferPromptLenght = display.length();
       textFont(fontMain);
       textAlign(CENTER, CENTER);
@@ -133,8 +133,8 @@ class DisclaimerState extends BaseState {
         textAlign(CENTER, CENTER);
         fill(255, 80);
         rectMode(CENTER);
-        text("Remaining characters:" + " " + str(Config.maxCharPrompt - bufferPromptLenght),
-          width / 2.0, height / 2.0 + maxH/2, 200, 200);
+        text("Remaining characters: " + str(Config.maxCharPrompt - bufferPromptLenght),
+          width / 2.0, height / 2.0 + height * Config.REMAINING_CHARS_OFFSET_FRAC, 200*2, 200);
       }
     }
 
@@ -158,10 +158,10 @@ class DisclaimerState extends BaseState {
         inputHandler.backspace();
       } else if (key == DELETE) {
         inputHandler.clear();
-      } else if (key >= 32 && key < 127 && key != '<') {  // caratteri stampabili ASCII
+      } else if (key >= 32 && key < 127 && key != '<' && key != '0') {  // caratteri stampabili ASCII
         inputHandler.append((char) key);
         keyEffect.play();
-      } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<') {
+      } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<' && key != '0') {
         inputHandler.append((char) key);
         keyEffect.play();
       }
@@ -226,7 +226,7 @@ class DisclaimerState extends BaseState {
         return;
       }
       // Qualsiasi altro tasto avvia il fade-out anticipato
-      if (!fadingOut && key != '<') startFadeOut();
+      if (!fadingOut && key != '<' && key != '0') startFadeOut();
     }
 
     void startFadeOut() {

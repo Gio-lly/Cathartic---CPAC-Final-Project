@@ -382,6 +382,7 @@ class ParticleSystem {
     dynamicJitter    = lerp(dynamicJitter, targetJitter, 0.06);
 
     float targetModalComplexity = constrain(
+      Config.MODAL_COMPLEXITY_BASE +
       0.65 * negativeEnergy + 0.35 * emotionalEnergy - 0.25 * positiveEnergy,
       0, 1
     );
@@ -390,8 +391,8 @@ class ParticleSystem {
   }
 
   void buildFromText(String txt) {
-    float maxW = width * 0.5;
-    float maxH = height * 0.5;
+    float maxW = width * Config.PROMPT_BOX_W_FRAC;
+    float maxH = height * Config.PROMPT_BOX_H_FRAC;
 
     PGraphics pg = createGraphics(width, height);
     pg.beginDraw();
@@ -472,6 +473,32 @@ class ParticleSystem {
 
     colorMode(RGB, 255);
     popMatrix();
+  }
+
+  // ── Debug overlay (DEV_MODE) ─────────────────────────────────
+  // Disegna le linee nodali del campo Chladni (dove _A(x,y) ≈ 0),
+  // cioè le figure verso cui le particelle convergono.
+  void renderChladniField() {
+    pushStyle();
+    colorMode(RGB, 255);
+    noStroke();
+    fill(255, 0, 80, 200);
+
+    int step = 4;
+    float threshold = 0.04;
+
+    for (int py = 0; py < height; py += step) {
+      for (int px = 0; px < width; px += step) {
+        float x = px / (float) width;
+        float y = py / (float) height;
+
+        if (abs(_A(x, y)) < threshold) {
+          rect(px, py, step, step);
+        }
+      }
+    }
+
+    popStyle();
   }
 
   void clear() {
@@ -594,8 +621,8 @@ class ParticleSystem {
 
     PVector center = new PVector(width / 2.0, height / 2.0);
 
-    _buildRepulsionGrid();
-    _buildCohesionGrid();
+    if (Config.ENABLE_REPULSION) _buildRepulsionGrid();
+    if (Config.ENABLE_COHESION) _buildCohesionGrid();
 
     for (int i = 0; i < N; i++) {
       ChladniParticle p = particles[i];
@@ -612,8 +639,8 @@ class ParticleSystem {
       p.vel.x += random(-totalJitter, totalJitter);
       p.vel.y += random(-totalJitter, totalJitter);
 
-      _applyRepulsion(p, i);
-      _applyCohesion(p, i);
+      if (Config.ENABLE_REPULSION) _applyRepulsion(p, i);
+      if (Config.ENABLE_COHESION) _applyCohesion(p, i);
 
       PVector radial = PVector.sub(p.pos, center);
 
@@ -740,16 +767,21 @@ class ParticleSystem {
   }
 
   float _A(float x, float y) {
+    // Zoom in on the pattern center: same modes span a smaller portion of
+    // [0,1], so their nodal lines appear larger on screen.
+    float zx = 0.5 + (x - 0.5) / Config.CHLADNI_SCALE;
+    float zy = 0.5 + (y - 0.5) / Config.CHLADNI_SCALE;
+
     float a = 0;
 
     if (!randomSet.isCircular) {
-      a += randomSet.w1 * _modeRect(x, y, randomSet.m1, randomSet.n1);
-      a += randomSet.w2 * _modeRect(x, y, randomSet.m2, randomSet.n2);
-      a += randomSet.w3 * _modeRect(x, y, randomSet.m3, randomSet.n3);
+      a += randomSet.w1 * _modeRect(zx, zy, randomSet.m1, randomSet.n1);
+      a += randomSet.w2 * _modeRect(zx, zy, randomSet.m2, randomSet.n2);
+      a += randomSet.w3 * _modeRect(zx, zy, randomSet.m3, randomSet.n3);
     } else {
-      a += randomSet.w1 * _modeCirc(x, y, randomSet.m1, randomSet.n1);
-      a += randomSet.w2 * _modeCirc(x, y, randomSet.m2, randomSet.n2);
-      a += randomSet.w3 * _modeCirc(x, y, randomSet.m3, randomSet.n3);
+      a += randomSet.w1 * _modeCirc(zx, zy, randomSet.m1, randomSet.n1);
+      a += randomSet.w2 * _modeCirc(zx, zy, randomSet.m2, randomSet.n2);
+      a += randomSet.w3 * _modeCirc(zx, zy, randomSet.m3, randomSet.n3);
     }
 
     return _tanh(a * 1.2);
