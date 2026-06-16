@@ -26,7 +26,7 @@ OSC_RECV_PORT = 12001  # Listening for text
 # Since values are 0.0 to 1.0:
 # 2.0 means it can go 0->1 in 0.5 seconds (Fast)
 # 0.2 means it can go 1->0 in 5.0 seconds (Slow)
-ASCENT_RATE = 0.1  
+ASCENT_RATE = 0.5  
 DESCENT_RATE = 0.005
 IDLE_TIMEOUT = 20.0    # Seconds to wait before drifting to neutral  
 FRAME_RATE = 30     # How many times per second we update/send OSC
