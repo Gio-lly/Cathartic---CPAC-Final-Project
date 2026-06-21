@@ -65,7 +65,7 @@ HashMap<String, Float> emotions = new HashMap<String, Float>();
 // =============================================================
 void setup() {
   size(1280, 720, P2D);           // Cambia con fullScreen() per l'installazione
-  //fullScreen(2);
+  fullScreen();
   pixelDensity(2);           // Migliore qualità pixels
   
   smooth(8);                 // Draws all geometry with smooth (anti-aliased) edges

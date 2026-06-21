@@ -19,9 +19,9 @@ static class Config {
   // ── Timing (millisecondi) ─────────────────────────────────
   static int DISCLAIMER_DURATION    = 5000;   // quanto resta il disclaimer
   static int PARTICLES_DURATION     = 30000*10;  // durata fase particelle
-  static int THANKS_FADE_IN         = 1500;   // fade-in "Grazie"
-  static int THANKS_HOLD            = 2000;   // quanto resta visibile
-  static int THANKS_FADE_OUT        = 2000;   // fade-out "Grazie"
+  static int THANKS_FADE_IN         = 1500*2;   // fade-in "Grazie"
+  static int THANKS_HOLD            = 2000*2;   // quanto resta visibile
+  static int THANKS_FADE_OUT        = 2000*2;   // fade-out "Grazie"
   static int PARTICLES_FADEOUT_TIME = 3000;   // fade-out particelle
 
   // ── Colori ───────────────────────────────────────────────
@@ -32,7 +32,7 @@ static class Config {
 
   // ── Testo ────────────────────────────────────────────────
   static String DISCLAIMER_TEXT =
-    "Everything you write here is private.\nNothing will be saved, used or seen by anyone.\nThere is no judgment and no record.\n You are free to write whatever you want.";
+    "Everything you write here is private.\nNothing will be saved, recorded or seen by anyone.\n You are free to write whatever you want.";
    
   static String DISCLAIMER_TEXT2 = 
     "Start typing to begin...";
@@ -41,7 +41,7 @@ static class Config {
 
   static String INPUT_PLACEHOLDER = "Start typing...";
   
-  static int maxCharPrompt = 650;
+  static int maxCharPrompt = 1000;
 
   // ── Box del testo del prompt ───────────────────────────────
   // Dimensioni (come frazione di width/height) del box di testo usato sia per
