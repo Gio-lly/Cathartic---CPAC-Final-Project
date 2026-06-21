@@ -19,7 +19,7 @@ EMOTION_PROMPTS = {
     "amusement":    ["playful plucks"],
     "approval":     ["resolved harmony"],
     "desire":       ["lush pad", "gliding melody"],
-    "caring":       ["warm textures", "soft pad"],
+    "caring":       ["warm textures", "soft pad", "_caring_audio_"],
     "excitement":   ["glittering textures"],
     "gratitude":    ["dreamy pad", "ethereal textures"],
     "love":         ["warm timbre", "love pad", "_love_audio_"],
