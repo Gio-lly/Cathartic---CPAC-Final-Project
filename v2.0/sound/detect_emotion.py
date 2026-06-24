@@ -41,9 +41,9 @@ OSC_RECV_PORT = 12001  # Incoming text prompts from Processing
 #   ascent (rises to the target) -> hold (sits idle at the peak) -> descent
 #   (fades back to neutral). The phase durations below are the source of
 #   truth; rates and IDLE_TIMEOUT are derived from them.
-ASCENT_DURATION_S = 10.0   # how fast a new emotion takes over
-HOLD_DURATION_S = 30.0     # how long it sits at the peak before fading
-DESCENT_DURATION_S = 20.0  # how slowly it fades back to neutral once idle (2x ascent)
+ASCENT_DURATION_S = 20.0   # how fast a new emotion takes over
+HOLD_DURATION_S = 60.0     # how long it sits at the peak before fading
+DESCENT_DURATION_S = 40.0  # how slowly it fades back to neutral once idle (2x ascent)
 PARTICLES_DURATION_S = ASCENT_DURATION_S + HOLD_DURATION_S + DESCENT_DURATION_S  # 60s total
 
 # Speed of change (units per second): value range is 0.0-1.0, so rate =
