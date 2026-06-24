@@ -14,7 +14,15 @@ void oscEvent(OscMessage theOscMessage) {
   String addr = theOscMessage.addrPattern();
   //println(theOscMessage);
   
-  if (addr.startsWith("/emotion/")){
+  if (addr.equals("/config/particles_duration")) {
+    // Sent once by detect_emotion.py on startup, for convenience: keeps
+    // PARTICLES_DURATION in sync with the Python-side ascent/hold/descent
+    // timings without having to update it by hand on both sides.
+    if (theOscMessage.checkTypetag("f")) {
+      Config.PARTICLES_DURATION = (int) theOscMessage.get(0).floatValue();
+      println("[OSC] PARTICLES_DURATION set from Python: " + Config.PARTICLES_DURATION + "ms");
+    }
+  } else if (addr.startsWith("/emotion/")){
     float val = 0;
     if (theOscMessage.checkTypetag("f")) {val = theOscMessage.get(0).floatValue();}
     else {println("valore non float");}

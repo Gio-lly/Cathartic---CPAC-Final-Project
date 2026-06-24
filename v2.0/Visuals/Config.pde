@@ -18,7 +18,7 @@ static class Config {
 
   // ── Timing (millisecondi) ─────────────────────────────────
   static int DISCLAIMER_DURATION    = 5000;   // quanto resta il disclaimer
-  static int PARTICLES_DURATION     = 30000*10;  // durata fase particelle
+  static int PARTICLES_DURATION     = 60000;  // durata fase particelle (sovrascritta da Python via OSC)
   static int THANKS_FADE_IN         = 1500*2;   // fade-in "Grazie"
   static int THANKS_HOLD            = 2000*2;   // quanto resta visibile
   static int THANKS_FADE_OUT        = 2000*2;   // fade-out "Grazie"
@@ -164,7 +164,7 @@ static class Config {
   // Particle trasparancy
   static float  PARTICLE_TRASP        = 160.0;
   // Particle smooth transitions vs not black background
-  static float  PARTICLE_PERMANENCE   = 30.0/2;
+  static float  PARTICLE_PERMANENCE   = 30.0;
 
   // ── Color gradient drift ──────────────────────────────────────────────────
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
