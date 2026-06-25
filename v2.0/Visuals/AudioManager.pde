@@ -1,6 +1,4 @@
-// =============================================================
-//  AudioManager.pde  |  Wrapper Sound — FFT + ampiezza + beat
-// =============================================================
+//  AudioManager.pde: audio input, playback and real-time signal analysis
 
 class AudioManager {
   Sound        sound;
@@ -18,11 +16,11 @@ class AudioManager {
 
   static final int    FFT_BANDS    = 512;
   static final float  SMOOTH       = 0.15;
-  static final int INPUT_DEVICE_MAC = 13;   // BlackHole 2ch su Mac Anna
-  static final int INPUT_DEVICE_WIN = 41;   // default su Windows (es. VB-Cable)
+  static final int INPUT_DEVICE_MAC = 13;   // BlackHole 2ch on Mac
+  static final int INPUT_DEVICE_WIN = 41;   // default on Windows (ex. VB-Cable)
   static final String AUDIO_FILE   = "Universel.mp3";
 
-  // ── Costruttore ──────────────────────────────────────────
+  // Initialization
   AudioManager() {
     sound = new Sound(Visuals.this);
     Sound.list();   // stampa device disponibili in console (utile per debug)
@@ -31,12 +29,13 @@ class AudioManager {
     println("[AudioManager] Sound inizializzato");
   }
 
-  // ── Avvia microfono / linea (BlackHole) ──────────────────
+  // Default audio input
   void start() { startMic(); }
 
+  // Live audio input
   void startMic() {
     if (active) stop();
-    delay(500); //small delay to wait for the line to be free
+    delay(500); // Small delay: allow the previous audio line to be released
     fileMode = false;
     try {
       int deviceIndex;
@@ -65,9 +64,7 @@ class AudioManager {
   }
 }
       
-      
-
-  // ── Avvia file audio ──────────────────────────────────────
+  // Audio file playback
   void startFile() {
     if (active) stop();
     fileMode = true;
@@ -87,9 +84,8 @@ class AudioManager {
       active = false;
     }
   }
-
-  // ── Inizializza FFT, Amplitude e BeatDetector ────────────
-  // Due overload per AudioIn e SoundFile
+  
+  // DSP analyzer setup
   void _initDSP(AudioIn source) {
     fft  = new FFT(Visuals.this, FFT_BANDS);
     amp  = new Amplitude(Visuals.this);
@@ -108,7 +104,7 @@ class AudioManager {
     beat.input(source);
   }
 
-  // ── Chiude tutto ──────────────────────────────────────────
+  // Audio resource cleanup
   void stop() {
     if (input  != null) { input.stop();  input  = null; }
     if (player != null) { player.stop(); player = null; }
@@ -117,7 +113,7 @@ class AudioManager {
     println("[AudioManager] Audio chiuso");
   }
 
-  // ── Ampiezza RMS con smoothing ────────────────────────────
+  // Amplitude analysis
   float getAmplitude() {
     if (!active || amp == null) return 0;
     float raw = amp.analyze();
@@ -125,7 +121,7 @@ class AudioManager {
     return smoothedAmplitude;
   }
 
-  // ── Valori FFT normalizzati con smoothing ─────────────────
+  // Frequency spectrum analysis
   float[] getFFT() {
     if (!active || fft == null) return fftValues;
     fft.analyze(rawFft);
@@ -135,13 +131,12 @@ class AudioManager {
     return fftValues;
   }
 
-  // ── Beat detection generico (Sound non distingue kick/snare) ──
+  // Beat and percussion detection
   boolean isBeat() {
     if (!active || beat == null) return false;
     return beat.isBeat();
   }
 
-  // ── Kick: energia nelle bande basse (~bassi/cassa) ───────
   boolean isKick() {
     if (!active || fftValues == null) return false;
     float energy = 0;
@@ -151,7 +146,6 @@ class AudioManager {
     return energy > 0.04;           // soglia da tarare
   }
 
-  // ── Snare: energia nelle bande medio-alte ────────────────
   boolean isSnare() {
     if (!active || fftValues == null) return false;
     float energy = 0;
@@ -161,7 +155,7 @@ class AudioManager {
     return energy > 0.02;           // soglia da tarare
   }
 
-  // ── Utilità file mode ─────────────────────────────────────
+  // Playback state and controls
   boolean isFileMode() { return fileMode; }
   boolean isPlaying()  { return fileMode && player != null && player.isPlaying(); }
 
