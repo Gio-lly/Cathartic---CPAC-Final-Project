@@ -141,7 +141,7 @@ class AudioManager {
   boolean isKick() {
     if (!active || fftValues == null) return false;
     float energy = 0;
-    int lo = 1, hi = 8;             // ~ 0-350 Hz a 44.1kHz / 512 bands
+    int lo = 1, hi = 8;             // ~ 0-350 Hz to 44.1kHz / 512 bands
     for (int i = lo; i < hi; i++) energy += fftValues[i];
     energy /= (hi - lo);
     return energy > 0.04; // Empirical detection threshold
