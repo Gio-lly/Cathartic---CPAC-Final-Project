@@ -1,4 +1,4 @@
-//  AudioManager.pde: audio input, playback and real-time signal analysis
+//  AudioManager.pde | audio input, playback and real-time signal analysis
 
 class AudioManager {
   Sound        sound;
