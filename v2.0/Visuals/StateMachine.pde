@@ -1,4 +1,4 @@
-//  StateMachine.pde  |  Finite-state machine and shared state logic
+// StateMachine.pde  |  Finite-state machine and shared state logic
 // Manages application states, transitions, lifecycle events, and input delegation
 
 class StateMachine {
