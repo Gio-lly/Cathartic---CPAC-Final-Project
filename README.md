@@ -42,7 +42,6 @@ Disclaimer  →  Input  →  Particles  →  Thanks  →  (back to Disclaimer)
 ## How It Works (Technology)
 
 Cathartic is a distributed system spanning **three environments** that talk to each other in real time.
-
 ```
 ┌──────────────────────┐     OSC      ┌──────────────────────┐
 │   PROCESSING (local) │ ───────────► │    PYTHON (local)    │
@@ -66,6 +65,7 @@ Cathartic is a distributed system spanning **three environments** that talk to e
            ▼
    Browser AudioWorklet player ──► speakers ──► (virtual cable) ──► Processing
 ```
+![Architecture](images/Cathartic%20architecture.png)
 
 ### Processing (local) — interface, visuals, audio analysis
 The front end of the installation. Built with the **P3D / OpenGL** renderer. Handles the state machine, the particle simulation, and real-time analysis (amplitude + FFT, via the Processing **Sound** library / JSyn `AudioIn`) of the music coming back from the Magenta host. The particle system reads low/mid/high FFT energy bands to drive its motion, and a `DevMode` overlay exposes live readouts (e.g. `Audio amp:`) for diagnostics.
@@ -232,43 +232,45 @@ When the inference notebook is running you should see both servers come up:
 Open the browser player (the page the notebook serves), start generation, and confirm the audio WebSocket connects in the browser console (F12).
 
 ---
-
 ### 2. Local Python environment (emotion detection)
-
+ 
 From the repository root:
-
+ 
 ```bash
 # Create and activate a virtual environment (Python 3.12)
 python3.12 -m venv .venv
-
+ 
 # Windows
 .venv\Scripts\activate
 # macOS / Linux
 source .venv/bin/activate
-
+ 
+# Upgrade pip, then install the pinned dependencies from requirements.txt
 pip install --upgrade pip
-pip install transformers torch python-osc websocket-client numpy
+pip install -r requirements.txt
 ```
-
+ 
+`requirements.txt` was generated with `pip freeze`, so it pins the exact versions used during development (`transformers`, `torch`, `python-osc`, `websocket-client`, `numpy`, and their transitive dependencies). Installing from it guarantees you get the same working set rather than whatever latest versions resolve to.
+ 
 > The first run downloads the `SamLowe/roberta-base-go_emotions` weights from HuggingFace (a few hundred MB). Be online the first time.
-
+ 
+> If you later add a dependency, regenerate the lockfile with `pip freeze > requirements.txt` so it stays in sync.
+ 
 Before launching, open `sound/detect_emotion.py` and check the configuration block:
-
+ 
 - `OSC_RECV_PORT` — must match the port Processing sends to in `Osc.pde`.
 - The OSC server should bind to `"0.0.0.0"` (all interfaces), **not** `127.0.0.1`, otherwise Windows raises `WinError 10049`:
-  ```python
+```python
   server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", OSC_RECV_PORT), disp)
-  ```
+```
 - `prompt_ws_url` — the **:9002** Lightning WebSocket URL from step 1.6.
-
 Run it:
 ```bash
 python sound/detect_emotion.py
 ```
 You should see `Model loaded.` and `EmotionSmoother initialized.`
-
+ 
 ---
-
 ### 3. Audio routing — so Processing can analyze the music
 
 The music is generated remotely and played in your **browser**. Processing needs to *analyze* that same audio (for the FFT-driven particles) **while you still hear it**. A virtual audio device duplicates the browser's output into an input that Processing can read.
