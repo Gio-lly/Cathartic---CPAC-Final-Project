@@ -1,4 +1,5 @@
-//  DevMode.pde  |   Debug overlay and developer controls
+// DevMode.pde  |   Debug overlay and developer controls
+// Provides runtime diagnostics, manual state navigation, prompt presets, and optional Chladni field visualization.
 
 class DevMode {
   // Debug panel layout
