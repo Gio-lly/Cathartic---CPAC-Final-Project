@@ -1,17 +1,13 @@
-// =============================================================
-//  DevMode.pde  |  Overlay debug + comandi sviluppatore
-//  Attivo solo se Config.DEV_MODE = true
-// =============================================================
+//  DevMode.pde  |   Debug overlay and developer controls
 
 class DevMode {
-
-  // Pannello comandi (angolo in alto a sinistra)
+  // Debug panel layout
   static final int PANEL_X     = 10;
   static final int PANEL_Y     = 10;
   static final int PANEL_W     = 340;
   static final int LINE_HEIGHT = 18;
 
-  // ── Render overlay ───────────────────────────────────────
+  // Render overlay
   void render() {
       if (!Config.DEV_MODE) return;
       if (!overlayVisible) return;
@@ -81,7 +77,7 @@ class DevMode {
       return lines.toArray(new String[0]);
     }
 
-  // ── Barra di stato in basso ───────────────────────────────
+  // Bottom status bar
   void drawStatusBar() {
     int bx = 10;
     int by = height - 30;
@@ -98,11 +94,11 @@ class DevMode {
          bx + 8, by + 11);
   }
 
-  // ── Gestione tasti dev ────────────────────────────────────
+  // Developer keyboard controls
   void handleKey() {
     if (!Config.DEV_MODE) return;
 
-    // Frecce: cambia stato
+    // Navigate through application states with the arrow keys
     if (keyCode == RIGHT) {
       sm.nextState();
       return;
@@ -112,15 +108,14 @@ class DevMode {
       return;
     }
 
-    // Tasti 1–5: carica preset
+    // 1–5: load one of the available developer prompt presets
     if (key >= '1' && key <= '9') {
       int idx = key - '1';
       if (idx < Config.DEV_PROMPTS.length) {
         inputHandler.setText(Config.DEV_PROMPTS[idx]);
         println("[DevMode] Preset " + (idx + 1) + " caricato: " + Config.DEV_PROMPTS[idx]);
 
-        // Se siamo in INPUT, il testo appare subito
-        // Se siamo altrove, va in INPUT
+        // Switch to the input state so the selected prompt is displayed
         if (sm.getCurrent() != Config.STATE_INPUT) {
           sm.changeState(Config.STATE_INPUT);
         }
@@ -128,16 +123,14 @@ class DevMode {
       return;
     }
 
-    // D: toggle overlay (disabilita il rendering del pannello)
+    // D: Toggle the developer overlay without disabling DEV_MODE
     if (key == '<') {
-      // Toglie solo il rendering ma lascia il DEV_MODE attivo
-      // (usiamo una flag locale)
       overlayVisible = !overlayVisible;
       println("[DevMode] Overlay " + (overlayVisible ? "visibile" : "nascosto"));
       return;
     }
 
-    // 0: toggle overlay linee nodali del campo Chladni
+    // 0: Toggle the Chladni field visualization
     if (key == '0') {
       showChladniField = !showChladniField;
       println("[DevMode] Linee campo Chladni " + (showChladniField ? "visibili" : "nascoste"));
@@ -147,10 +140,4 @@ class DevMode {
 
   boolean overlayVisible = true;
   boolean showChladniField = false;
-
-  // Override render per rispettare la flag
-  // (render() chiama questa invece di disegnare direttamente)
-  // → già gestita: il render esterno controlla Config.DEV_MODE
-  // Se vuoi nascondere solo il pannello ma lasciare la status bar,
-  // puoi aggiungere qui la logica.
 }

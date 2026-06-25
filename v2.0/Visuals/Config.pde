@@ -1,4 +1,5 @@
-//  Config.pde  |  global configuration parameters for the interactive installation
+// Config.pde  |  global configuration parameters for the interactive installation
+// Centralizes the global parameters that control the application's behavior, timing, visuals, audio response, and development settings.
 
 static class Config {
 

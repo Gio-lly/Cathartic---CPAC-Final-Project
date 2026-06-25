@@ -1,13 +1,12 @@
-// =============================================================
-//  StateMachine.pde  |  FSM — macchina a stati finiti
-// =============================================================
+//  StateMachine.pde  |  Finite-state machine and shared state logic
+// Manages application states, transitions, lifecycle events, and input delegation
 
 class StateMachine {
 
   BaseState[] states;
   int         current = -1;
 
-  // ── Costruttore ──────────────────────────────────────────
+  // State initialization
   StateMachine() {
     states = new BaseState[Config.NUM_STATES];
     states[Config.STATE_DISCLAIMER] = new DisclaimerState();
@@ -16,7 +15,7 @@ class StateMachine {
     states[Config.STATE_THANKS]     = new ThanksState();
   }
 
-  // ── Cambia stato ─────────────────────────────────────────
+  // State transitions
   void changeState(int nextState) {
     if (current >= 0 && states[current] != null) {
       states[current].onExit();
@@ -26,7 +25,7 @@ class StateMachine {
     states[current].onEnter();
   }
 
-  // ── Loop principale ──────────────────────────────────────
+  // Principal loop
   void update() {
     if (current >= 0) states[current].update();
   }
@@ -35,7 +34,7 @@ class StateMachine {
     if (current >= 0) states[current].render();
   }
 
-  // ── Input forwarding ────────────────────────────────────
+  // Input forwarding
   void handleKey() {
     if (current >= 0) states[current].handleKey();
   }
@@ -44,7 +43,7 @@ class StateMachine {
     if (current >= 0) states[current].handleKeyReleased();
   }
 
-  // ── Dev: navigazione manuale ─────────────────────────────
+  // Developer state navigation
   void nextState() {
     int next = (current + 1) % Config.NUM_STATES;
     changeState(next);
@@ -55,7 +54,7 @@ class StateMachine {
     changeState(prev);
   }
 
-  // ── Helper label ─────────────────────────────────────────
+  // State information
   String stateLabel(int s) {
     switch (s) {
       case Config.STATE_DISCLAIMER: return "DISCLAIMER";
@@ -69,12 +68,12 @@ class StateMachine {
   int getCurrent() { return current; }
 }
 
-// =============================================================
-//  BaseState — interfaccia comune per tutti gli stati
-// =============================================================
-abstract class BaseState {
-  int     stateStartTime = 0;   // millis() all'entrata nello stato
+//  BaseState | Shared base class for all application states
 
+abstract class BaseState {
+  int     stateStartTime = 0;   // Time at which the current state was entered, in ms
+  
+  // Lifecycle hooks overridden by individual states when needed
   void onEnter()          { stateStartTime = millis(); }
   void onExit()           {}
   void update()           {}
@@ -82,10 +81,10 @@ abstract class BaseState {
   void handleKey()        {}
   void handleKeyReleased(){}
 
-  // Tempo trascorso dall'entrata nello stato
+  // Returns the time elapsed since the state was entered
   int elapsed() { return millis() - stateStartTime; }
 
-  // Progresso 0.0→1.0 in base a una durata
+  // Returns normalized progress over the specified duration
   float progress(int duration) {
     return constrain((float) elapsed() / duration, 0.0, 1.0);
   }
