@@ -31,7 +31,7 @@ from emotion_smoother import EmotionSmoother
 # ----------------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------------
-LIGHTNING_WS_URL = "wss://9002-01kp66x818nvqtvyvcf9bkr5ze.cloudspaces.litng.ai"
+LIGHTNING_WS_URL = "wss://9002-01kp66x818nvqtvyvcf9bkr5ze.cloudspaces.litng.ai" #SUBSIDIZE WITH YOUR OWN INSTANCE URL
 
 OSC_IP = "127.0.0.1"
 OSC_SEND_PORT = 9000   # Smoothed emotion values -> Processing (visuals)
