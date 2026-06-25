@@ -1,36 +1,32 @@
-// =============================================================
-//  Config.pde  |  Costanti e parametri globali
-//  Cambia qui per tweakare l'installazione senza toccare la logica
-// =============================================================
+//  Config.pde  |  global configuration parameters for the interactive installation
 
 static class Config {
 
-  // ── Dev mode ─────────────────────────────────────────────
-  static boolean DEV_MODE = true;   // <── metti false in produzione
-  static boolean USE_FILE_AUDIO = false; // <── metti false per microfono
+  static boolean DEV_MODE = true;
+  static boolean USE_FILE_AUDIO = false; // true = prerecorded audio file, false = live or virtual audio input
 
-  // ── Stati FSM ────────────────────────────────────────────
+  // Finite-State Machine
   static final int STATE_DISCLAIMER = 0;
   static final int STATE_INPUT      = 1;
   static final int STATE_PARTICLES  = 2;
   static final int STATE_THANKS     = 3;
   static final int NUM_STATES       = 4;
 
-  // ── Timing (millisecondi) ─────────────────────────────────
-  static int DISCLAIMER_DURATION    = 5000;   // quanto resta il disclaimer
-  static int PARTICLES_DURATION     = 60000;  // durata fase particelle (sovrascritta da Python via OSC)
-  static int THANKS_FADE_IN         = 1500*2;   // fade-in "Grazie"
-  static int THANKS_HOLD            = 2000*2;   // quanto resta visibile
-  static int THANKS_FADE_OUT        = 2000*2;   // fade-out "Grazie"
-  static int PARTICLES_FADEOUT_TIME = 3000;   // fade-out particelle
+  // Timing (ms)
+  static int DISCLAIMER_DURATION    = 5000;   // disclaimer duration
+  static int PARTICLES_DURATION     = 60000;  // particles duration (from Python via OSC)
+  static int THANKS_FADE_IN         = 1500*2; // fade-in "Thank you."
+  static int THANKS_HOLD            = 2000*2; // "Thank you." duration
+  static int THANKS_FADE_OUT        = 2000*2; // fade-out "Thank you."
+  static int PARTICLES_FADEOUT_TIME = 3000;   // particles fade-out 
 
-  // ── Colori ───────────────────────────────────────────────
-  static int BG_COLOR               = 0;               // nero
-  static int TEXT_COLOR             = 0xFFFFFFFF;       // bianco
+  // Colors
+  static int BG_COLOR               = 0;               // black
+  static int TEXT_COLOR             = 0xFFFFFFFF;      // white
   static int PARTICLE_BASE_COLOR    = 0xFFFFFFFF;
-  static int DISCLAIMER_TEXT_COLOR  = 0xFFAAAAAA;       // grigio chiaro
+  static int DISCLAIMER_TEXT_COLOR  = 0xFFAAAAAA;      // light grey
 
-  // ── Testo ────────────────────────────────────────────────
+  // Text
   static String DISCLAIMER_TEXT =
     "Everything you write here is private.\nNothing will be saved, recorded or seen by anyone.\n You are free to write whatever you want.";
    
@@ -43,35 +39,29 @@ static class Config {
   
   static int maxCharPrompt = 1000;
 
-  // ── Box del testo del prompt ───────────────────────────────
-  // Dimensioni (come frazione di width/height) del box di testo usato sia per
-  // mostrare il prompt durante l'input, sia per generare le posizioni delle
-  // particelle da quel testo (buildFromText). Tenerle qui evita che i due
-  // punti vadano fuori sincrono quando si cambia lo spazio occupato dal prompt.
-  static float PROMPT_BOX_W_FRAC = 0.75; // larghezza box testo
-  static float PROMPT_BOX_H_FRAC = 1.0;  // altezza box testo
+  // Prompt layout
+  // Relative dimensions of the text area shared by input rendering 
+  // and particle initialization in buildFromText().
+  static float PROMPT_BOX_W_FRAC = 0.75;
+  static float PROMPT_BOX_H_FRAC = 1.0;
 
-  // Offset verticale (come frazione di height, dal centro schermo) del contatore
-  // "Remaining characters". Indipendente da PROMPT_BOX_H_FRAC: se il box del
-  // prompt occupa tutta l'altezza, il contatore resta comunque visibile.
+  // Vertical position of the remaining-character counter, expressed 
+  // as a fraction of the screen height relative to its center.
   static float REMAINING_CHARS_OFFSET_FRAC = 0.4;
 
-  // ── Sottotitolo disclaimer: blink ─────────────────────────
-  static int    DISCLAIMER_SUB_OFFSET_Y  = 120;    // px sotto il testo principale
-  static int    DISCLAIMER_SUB_BLINK_IN  = 800;   // ms fade-in
-  static int    DISCLAIMER_SUB_BLINK_OUT = 800;   // ms fade-out
-  static int    DISCLAIMER_SUB_HOLD_ON   = 1200;  // ms visibile
-  static int    DISCLAIMER_SUB_HOLD_OFF  = 400;   // ms invisibile
-  static int    DISCLAIMER_SUB_COLOR     = 0xFF444444;  // grigio scuro
+  // Disclaimer subtitle animation
+  static int    DISCLAIMER_SUB_OFFSET_Y  = 120;  // Vertical offset below the main text, in pixels
+  static int    DISCLAIMER_SUB_BLINK_IN  = 800;  // Fade-in duration, in ms
+  static int    DISCLAIMER_SUB_BLINK_OUT = 800;  // Fade-out duration, in ms
+  static int    DISCLAIMER_SUB_HOLD_ON   = 1200; // Visible duration, in ms
+  static int    DISCLAIMER_SUB_HOLD_OFF  = 400;  // Invisibile duration, in ms
+  static int    DISCLAIMER_SUB_COLOR     = 0xFF444444;  // dark grey
   
-
-
-  // ── Chladni / ParticleSystem ───────────────────────────────
-  // Total number of particles in the simulation
-  static int    PARTICLE_COUNT        = 20000;
+  // Chladni ParticleSystem 
+  static int    PARTICLE_COUNT        = 20000; // Total number of particles in the simulation
   
-  // ── Field physics ──────────────────────────────────────────────────────────
-  // Base strength of the force pushing particles toward field minima
+  // Field physics
+  // Base attraction strength toward the minima of the Chladni field
   static float  FORCE_GAIN_BASE       = 5.0 *5; //10
   // Velocity damping per frame (0 = no damping, 1 = instant stop)
   static float  DAMPING               = 0.10;
@@ -80,15 +70,15 @@ static class Config {
   // Pixel offset used for numerical gradient computation
   static float  EPS                   = 0.001 ; //2.0
 
-  // ── Particle repulsion ───────────────────────────────────────────────────────
-  // Enable/disable the repulsion force computation entirely
+  // Particle repulsion
+  // Enable or disable short-range repulsion between particles
   static boolean ENABLE_REPULSION     = true;
   // Distance (px) within which two particles push each other apart
   static float  REPULSION_RADIUS      = 6.0 / 2;
   // Strength of the repulsion at zero distance, fading linearly to 0 at REPULSION_RADIUS
   static float  REPULSION_STRENGTH    = 0.04*10;
 
-  // ── Particle cohesion ─────────────────────────────────────────────────────────
+  // Particle cohesion
   // Enable/disable the cohesion force computation entirely
   static boolean ENABLE_COHESION      = true;
   // Distance (px) within which two particles attract each other
@@ -96,7 +86,7 @@ static class Config {
   // Strength of the attraction at COHESION_RADIUS, fading linearly to 0 at distance 0
   static float  COHESION_STRENGTH     = 0.005*4;
 
-  // ── Edge well ──────────────────────────────────────────────────────────────
+  // Edge well
   // Minimum edge repulsion weight (at low volume)
   static float  EDGE_WEIGHT_MIN       = 0.0;
   // Maximum edge repulsion weight (at high volume)
@@ -110,13 +100,13 @@ static class Config {
   // Smoothing factor for edge weight transitions (0 = instant, 1 = never moves)
   static float  EDGE_SMOOTH           = 0.9;
   
-  // ── Volume → edge mapping ──────────────────────────────────────────────────
+  // Audio amplitude to edge mapping 
   // Amplitude level considered silence (lower bound for normalization)
   static float  VOL_MIN               = 0.001*50; // 0.001
   // Amplitude level considered full volume (upper bound for normalization)
   static float  VOL_MAX               = 0.5;
   
-  // ── Kick → force impulse ───────────────────────────────────────────────────
+  // Kick-driven force impulse
   // Extra force added to particles on each detected kick (scales with kick strength)
   static float  FORCE_KICK_BOOST      = 20.0/15; // 50
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
@@ -124,7 +114,7 @@ static class Config {
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
   static float  FORCE_DECAY           = 0.10;
   
-  // ── Kick envelope detector ─────────────────────────────────────────────────
+  // Kick envelope detector
   // High-pass cutoff for kick band isolation (Hz) — filters out DC / sub rumble
   static float  KICK_HP               = 20.0;
   // Low-pass cutoff for kick band isolation (Hz) — keeps only bass transients
@@ -144,7 +134,7 @@ static class Config {
   // Z-score range mapped to kEnv 0→1 (higher = less sensitive continuous follow)
   static float  Z_FOLLOW_RANGE        = 3.0;
   
-  // ── Visuals ────────────────────────────────────────────────────────────────
+  // Visuals
   // Particle stroke weight at rest (no kick)
   static float  BASE_STROKE_W         = 0.8/4; // 0.8
   // Particle stroke weight target during a strong kick envelope
@@ -166,7 +156,7 @@ static class Config {
   // Particle smooth transitions vs not black background
   static float  PARTICLE_PERMANENCE   = 30.0;
 
-  // ── Color gradient drift ──────────────────────────────────────────────────
+  // Color gradient drift
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
   static float  GRADIENT_DRIFT_MIN_SPEED = 0.1/2;
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 1
@@ -177,19 +167,18 @@ static class Config {
   // Smoothing speed for each particle's hue transitioning toward its target gradient color (0..1, lower = smoother/slower)
   static float  HUE_TRANSITION_SPEED     = 0.01;
 
-  // ── Modes ──────────────────────────────────────────────────────────────────
-  // Zoom factor applied to the Chladni mode functions: 1 = unchanged, >1 = zoom in on the
-  // pattern center so the same modes produce larger figures (edge well is unaffected)
+  // Chladni mode configuration
+  // Spatial scaling applied to the Chladni field: 
+  // 1 = original scale, values above 1 enlarge the central pattern
   static float   CHLADNI_SCALE         = 1.2;
-  // Baseline added to modalComplexity so even a neutral/calm state still produces
-  // reasonably intricate Chladni figures (0 = old behaviour, 1 = always max complexity)
+  // Minimum modal complexity maintained when emotional energy is low (0 = old behaviour, 1 = always max complexity)
   static float   MODAL_COMPLEXITY_BASE = 0.3;
   // Probability of picking a circular Chladni mode vs rectangular (0 = always rect, 1 = always circular)
   static float   CIRCULAR_PROBABILITY  = 0.0;
   // If true, particles are scattered randomly whenever the mode changes on a kick
   static boolean RESET_ON_MODE_CHANGE  = false;
 
-  // ── Dev: testi preset ────────────────────────────────────
+  // Development test prompts
   static String[] DEV_PROMPTS = {
     "I hate my children.",
     "I feel sad.",
