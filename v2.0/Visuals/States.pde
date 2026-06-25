@@ -1,12 +1,10 @@
-// =============================================================
-//  States.pde  |  Implementazione dei 4 stati dell'installazione
-// =============================================================
+// States.pde | Installation state implementations
+// Implements the four states of the interactive installation, coordinating user input, visual transitions, audio-reactive
+// particle behavior, and progression through the experience.
 
+// STATE 0 — DISCLAIMER 
+// Displays the introductory text and waits for user input before transitioning to the Input state.
 
-// ─────────────────────────────────────────────────────────────
-//  STATO 0 — DISCLAIMER
-//  Mostra il testo introduttivo, poi passa a INPUT
-// ─────────────────────────────────────────────────────────────
 class DisclaimerState extends BaseState {
 
   float alpha    = 0;
@@ -32,14 +30,12 @@ class DisclaimerState extends BaseState {
   void update() {
     int e = elapsed();
 
-    // Fade-in del testo principale, poi resta fisso
     if (e < FADE_IN) {
       alpha = map(e, 0, FADE_IN, 0, 255);
     } else {
       alpha = 255;
     }
 
-    // Blink sottotitolo — parte dopo il fade-in, non si ferma mai
     if (e >= FADE_IN) {
       int blinkIn  = Config.DISCLAIMER_SUB_BLINK_IN;
       int holdOn   = Config.DISCLAIMER_SUB_HOLD_ON;
@@ -77,7 +73,6 @@ class DisclaimerState extends BaseState {
     text(Config.DISCLAIMER_TEXT2, width / 2.0, height / 2.0 + Config.DISCLAIMER_SUB_OFFSET_Y);
   }
 
-  // Solo qui avviene la transizione
   void handleKey() {
     if (key != '<' && key != '0' && keyCode != RIGHT && keyCode != LEFT) {
 
@@ -91,11 +86,9 @@ class DisclaimerState extends BaseState {
   }
 }
 
-  // ─────────────────────────────────────────────────────────────
-  //  STATO 1 — INPUT
-  //  L'utente scrive il suo testo; INVIO porta alle particelle
-  //  Fine: Il prompt si trasforma in particelle
-  // ─────────────────────────────────────────────────────────────
+// STATE 1 — INPUT 
+// Collects the user's prompt. Pressing Enter sends the text to Python and uses it to initialise the particle system.
+  
   class InputState extends BaseState {
 
     void onEnter() {
@@ -108,7 +101,6 @@ class DisclaimerState extends BaseState {
     }
 
     void update() {
-      // Niente da fare: l'input è gestito in InputHandler
     }
 
     void render() {
@@ -118,8 +110,8 @@ class DisclaimerState extends BaseState {
 
       boolean isPlaceholder = inputHandler.getText().length() == 0;
 
-      float maxW = width * Config.PROMPT_BOX_W_FRAC;  // larghezza massima prima del wrap
-      float maxH = height * Config.PROMPT_BOX_H_FRAC; // altezza massima testo
+      float maxW = width * Config.PROMPT_BOX_W_FRAC;  
+      float maxH = height * Config.PROMPT_BOX_H_FRAC;
       int bufferPromptLenght = display.length();
       textFont(fontMain);
       textAlign(CENTER, CENTER);
@@ -158,7 +150,7 @@ class DisclaimerState extends BaseState {
         inputHandler.backspace();
       } else if (key == DELETE) {
         inputHandler.clear();
-      } else if (key >= 32 && key < 127 && key != '<' && key != '0') {  // caratteri stampabili ASCII
+      } else if (key >= 32 && key < 127 && key != '<' && key != '0') {  
         inputHandler.append((char) key);
         keyEffect.play();
       } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<' && key != '0') {
@@ -169,11 +161,8 @@ class DisclaimerState extends BaseState {
   }
 
 
-  // ─────────────────────────────────────────────────────────────
-  //  STATO 2 — PARTICLES
-  //  Le particelle si muovono reattive alla musica
-  //  Fine: timeout Config.PARTICLES_DURATION o pressione tasto
-  // ─────────────────────────────────────────────────────────────
+// STATE 2 — PARTICLES 
+// Runs the audio-reactive particle simulation. The state ends automatically after a timeout or early after a key press.
   class ParticlesState extends BaseState {
     boolean fadingOut    = false;
     int     fadeStartTime;
@@ -220,12 +209,11 @@ class DisclaimerState extends BaseState {
     }
 
     void handleKey() {
-      // Spazio: pausa/riprendi il file audio
       if (Config.USE_FILE_AUDIO && key == ' ') {
         audio.togglePause();
         return;
       }
-      // Qualsiasi altro tasto avvia il fade-out anticipato
+  
       if (!fadingOut && key != '<' && key != '0') startFadeOut();
     }
 
@@ -237,10 +225,9 @@ class DisclaimerState extends BaseState {
   }
 
 
-  // ─────────────────────────────────────────────────────────────
-  //  STATO 3 — THANKS
-  //  "Grazie" appare e scompare, poi torna al DISCLAIMER
-  // ─────────────────────────────────────────────────────────────
+// STATE 3 — THANKS 
+// Displays the closing message with a fade-in, hold and fade-out sequence, then restarts the installation.
+
   class ThanksState extends BaseState {
 
     float alpha;

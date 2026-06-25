@@ -1,4 +1,5 @@
-//  AudioManager.pde | audio input, playback and real-time signal analysis
+// AudioManager.pde | audio input, playback and real-time signal analysis
+// Manages live audio input, providing real-time amplitude, FFT, beat, kick and snare analysis for the visual system.
 
 class AudioManager {
   Sound        sound;

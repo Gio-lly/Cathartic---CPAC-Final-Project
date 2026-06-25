@@ -1,4 +1,5 @@
-//  Config.pde  |  global configuration parameters for the interactive installation
+// Config.pde  |  global configuration parameters for the interactive installation
+// Centralizes the global parameters that control the application's behavior, timing, visuals, audio response, and development settings.
 
 static class Config {
 
@@ -180,8 +181,17 @@ static class Config {
 
   // Development test prompts
   static String[] DEV_PROMPTS = {
-    "I hate my children.",
-    "I feel sad.",
-    "vghjilkhgftyuijkbhgvfcftyuhjbgvftyguhjbgvfygtuhjbgftyghjbvgftyguhjbvgcftyguhvcftyghvcfgtyghvftgghvcfgtghv"
+    "I hate my children.", // anger, annoyance
+    "I wished happy birthday to a friend I love who has cancer, and my heart breaks knowing she won't be probably here next Christmas",
+    "I wish I had a family, children, a partner, lots of people and warmth around me. To eat together, to feel like family. Instead I feel alone, I'm tired, tired of the wrong relationships, tired of facing life by myself",
+    "I transitioned and I regret it", // remorse, sadness
+    "I had an amazing job offer overseas that I didn't accept and I regret it every day", // remorse, sadness, disappointment
+    "I lie to my therapist because I'm afraid of her judgment. I know it's stupid. But I'm scared.", // fear
+    "I'm married, but the homosexual side of me that was always inside has finally emerged. And I love it. And I feel caged.",
+    "I'm a teacher and I'm attracted to one of my students",
+    "My girlfriend is always sad. It's starting to affect me. I try to distance myself and I feel happy when I'm away from her. But I'm afraid to break up with her because of how she might react",
+    "I'm pregnant and I'm terrified of my future",
+    "I love my husband but I want to sleep with other men",
+    "I wish I had a family, children, a partner, lots of people and warmth around me. To eat together, to feel like family. Instead I feel alone, I'm tired, tired of the wrong relationships, tired of facing life by myself"
   };
 }
