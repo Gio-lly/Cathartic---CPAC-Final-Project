@@ -15,7 +15,7 @@ static class Config {
 
   // Timing (ms)
   static int DISCLAIMER_DURATION    = 5000;   // disclaimer duration
-  static int PARTICLES_DURATION     = 60000;  // particles duration (from Python via OSC)
+  static int PARTICLES_DURATION     = 60000*2;  // particles duration (from Python via OSC)
   static int THANKS_FADE_IN         = 1500*2; // fade-in "Thank you."
   static int THANKS_HOLD            = 2000*2; // "Thank you." duration
   static int THANKS_FADE_OUT        = 2000*2; // fade-out "Thank you."
@@ -59,7 +59,7 @@ static class Config {
   static int    DISCLAIMER_SUB_COLOR     = 0xFF444444;  // dark grey
   
   // Chladni ParticleSystem 
-  static int    PARTICLE_COUNT        = 20000; // Total number of particles in the simulation
+  static int    PARTICLE_COUNT        = 30000; // Total number of particles in the simulation
   
   // Field physics
   // Base attraction strength toward the minima of the Chladni field
@@ -103,9 +103,9 @@ static class Config {
   
   // Audio amplitude to edge mapping 
   // Amplitude level considered silence (lower bound for normalization)
-  static float  VOL_MIN               = 0.001*50; // 0.001
+  static float  VOL_MIN               = 0.01; // 0.001
   // Amplitude level considered full volume (upper bound for normalization)
-  static float  VOL_MAX               = 0.5;
+  static float  VOL_MAX               = 0.1;
   
   // Kick-driven force impulse
   // Extra force added to particles on each detected kick (scales with kick strength)
@@ -129,7 +129,7 @@ static class Config {
   // Z-score threshold above which a discrete kick event is fired
   static float  Z_THRESH              = 0.8;
   // Lockout period after a kick fires — prevents double-triggers (milliseconds)
-  static int    REFRACTORY_MS         = 1000 * 4; // 100
+  static int    REFRACTORY_MS         = 500; // 100
   // Z-score floor below which continuous kEnv is treated as zero (dead zone)
   static float  Z_FOLLOW_FLOOR        = 0.2;
   // Z-score range mapped to kEnv 0→1 (higher = less sensitive continuous follow)

@@ -17,7 +17,7 @@ class AudioManager {
 
   static final int    FFT_BANDS    = 512;
   static final float  SMOOTH       = 0.15;
-  static final int INPUT_DEVICE_MAC = 13;   // BlackHole 2ch on Mac
+  static final int INPUT_DEVICE_MAC = 9;   // BlackHole 2ch on Mac
   static final int INPUT_DEVICE_WIN = 41;   // default on Windows (ex. VB-Cable)
   static final String AUDIO_FILE   = "Universel.mp3";
 
@@ -49,7 +49,7 @@ class AudioManager {
       deviceIndex = INPUT_DEVICE_WIN;
       println("[AudioManager] Sistema: Windows, uso device " + deviceIndex);
     } else {
-      deviceIndex = 41;   // fallback Linux/altro
+      deviceIndex = INPUT_DEVICE_WIN;   // fallback Linux/altro
       println("[AudioManager] Sistema: " + os + ", uso device " + deviceIndex);
     }
     sound = new Sound(Visuals.this);
