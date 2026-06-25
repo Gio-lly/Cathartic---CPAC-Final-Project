@@ -23,7 +23,7 @@ class AudioManager {
   // Initialization
   AudioManager() {
     sound = new Sound(Visuals.this);
-    Sound.list();   // stampa device disponibili in console (utile per debug)
+    Sound.list();
     fftValues = new float[FFT_BANDS];
     rawFft    = new float[FFT_BANDS];
     println("[AudioManager] Sound inizializzato");
@@ -75,7 +75,7 @@ class AudioManager {
         active = false;
         return;
       }
-      player.loop();   // loop continuo; usa player.play() per una sola riproduzione
+      player.loop();
       _initDSP(player);
       active = true;
       println("[AudioManager] File audio avviato: " + AUDIO_FILE);
@@ -137,22 +137,24 @@ class AudioManager {
     return beat.isBeat();
   }
 
+  // Kick detection based on low-frequency energy
   boolean isKick() {
     if (!active || fftValues == null) return false;
     float energy = 0;
-    int lo = 1, hi = 8;             // ~ 0-350 Hz a 44.1kHz / 512 bande
+    int lo = 1, hi = 8;             // ~ 0-350 Hz a 44.1kHz / 512 bands
     for (int i = lo; i < hi; i++) energy += fftValues[i];
     energy /= (hi - lo);
-    return energy > 0.04;           // soglia da tarare
+    return energy > 0.04; // Empirical detection threshold
   }
 
+  // Snare detection based on mid-to-high-frequency energy
   boolean isSnare() {
     if (!active || fftValues == null) return false;
     float energy = 0;
     int lo = 40, hi = 100;          // ~ 1.5-4 kHz
     for (int i = lo; i < hi; i++) energy += fftValues[i];
     energy /= (hi - lo);
-    return energy > 0.02;           // soglia da tarare
+    return energy > 0.02; // Empirical detection threshold
   }
 
   // Playback state and controls
