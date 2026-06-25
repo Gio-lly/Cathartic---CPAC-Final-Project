@@ -1,4 +1,5 @@
 // Osc.pde | OSC communication between Processing and Python
+// Sends user prompts to Python and receives emotion values and configuration parameters used by the visualization.
 
     // Sends the user text prompt to Python via OSC
     void sendTextToPython(String text) {
