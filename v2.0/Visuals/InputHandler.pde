@@ -1,4 +1,5 @@
-//  InputHandler.pde  |  Text buffer for the INPUT state
+// InputHandler.pde  |  Text buffer for the INPUT state
+// Stores and edits the user prompt, enforces the maximum length, and supports direct text loading from developer presets.
 
 class InputHandler {
   StringBuilder buffer;
