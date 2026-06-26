@@ -1,68 +1,71 @@
 // =============================================================
-//  ParticleSystem.pde  |  Pool di particelle + force field
+//  ParticleSystem.pde  |  Particle pool + Chladni force field
 // =============================================================
+//
+//  Particles are pushed around by the gradient of a Chladni-plate
+//  potential field, so they accumulate along the field's nodal
+//  lines and form evolving figures. Audio analysis and detected
+//  emotions both drive the field (which pattern is shown, how
+//  strongly it pulls) and the rendering (particle color, size,
+//  brightness).
 
 class ParticleSystem {
 
+  // ── Emotion state ────────────────────────────────────────────
   float positiveEnergy = 0;
   float negativeEnergy = 0;
   float emotionalEnergy = 0;
 
-  float emotionHue = 0;
-  float emotionSat = 0;
   float emotionBri = 100;
 
-  float targetHue = 0;
-  float targetSat = 0;
   float targetBri = 60;
 
   float modalComplexity = 0;
 
-  // ── Color palette (persistente per lo state delle particelle) ─
+  // ── Color palette (persists for the lifetime of the state) ──
   ArrayList<String> paletteEmotions = new ArrayList<String>();
   static final int MAX_PALETTE_COLORS = 3;
   int paletteDominantIdx = 0;
 
-  // ── Spatial gradient drift ────────────────────────────────────
+  // ── Spatial gradient drift ───────────────────────────────────
   PVector gradientOffset = new PVector();
   float gradientDriftT = 0;
 
-  // ── Particles ──────────────────────────────────────────────
+  // ── Particles ─────────────────────────────────────────────────
   ChladniParticle[] particles;
   int N;
 
-  // ── Physics ────────────────────────────────────────────────
-  float forceGain;
+  // ── Physics ──────────────────────────────────────────────────
   float forceKickValue = 0;
 
   float dynamicDamping;
   float dynamicJitter;
   float dynamicForceGain;
 
-  // ── Particle repulsion (spatial hash grid) ──────────────────
+  // ── Particle repulsion (spatial hash grid) ───────────────────
   IntList[] repulsionGrid;
   int repulsionCols, repulsionRows;
   float repulsionCellSize;
 
-  // ── Particle cohesion (spatial hash grid) ───────────────────
+  // ── Particle cohesion (spatial hash grid) ────────────────────
   IntList[] cohesionGrid;
   int cohesionCols, cohesionRows;
   float cohesionCellSize;
 
-  // ── FFT bands ──────────────────────────────────────────────
+  // ── FFT bands ────────────────────────────────────────────────
   float lowEnergy = 0;
   float midEnergy = 0;
   float highEnergy = 0;
 
-  // ── Swirl / rotation ───────────────────────────────────────
+  // ── Swirl / rotation ─────────────────────────────────────────
   float swirlDirection = 1.0;
 
-  // ── Edge ───────────────────────────────────────────────────
+  // ── Edge ─────────────────────────────────────────────────────
   float edgeWeight = 5.0;
   float edgeMargin = 0.1;
   float edgeTarget = 5.0;
 
-  // ── Kick envelope state ────────────────────────────────────
+  // ── Kick envelope state ──────────────────────────────────────
   float env = 0;
   float baseMean = 0;
   float baseVar = 1e-6;
@@ -70,22 +73,25 @@ class ParticleSystem {
   int lastKickMs = -999999;
   int frameFromLastKick = 0;
 
-  // ── Continuous visual state ────────────────────────────────
+  // ── Continuous visual state ──────────────────────────────────
   float particleW;
   float luminosita;
   float kEnv = 0;
 
-  // ── Alpha (for fade-out) ───────────────────────────────────
+  // ── Alpha (for fade-out) ─────────────────────────────────────
   float globalAlpha = 1.0;
 
-  // ── Mode ───────────────────────────────────────────────────
+  // ── Mode ─────────────────────────────────────────────────────
   ModeSet randomSet;
+
+  // =============================================================
+  //  SETUP
+  // =============================================================
 
   ParticleSystem() {
     N = Config.PARTICLE_COUNT;
     particles = new ChladniParticle[N];
 
-    forceGain = Config.FORCE_GAIN_BASE;
     baseAlpha = Config.BASE_ALPHA;
     particleW = Config.BASE_STROKE_W;
     luminosita = Config.BASE_LUM;
@@ -114,8 +120,14 @@ class ParticleSystem {
     resetParticles();
     pickRandomModeSet();
 
-    println("[ParticleSystem] Chladni init — " + N + " particelle");
+    println("[ParticleSystem] Chladni init — " + N + " particles");
   }
+
+  // =============================================================
+  //  EMOTION LOOKUP
+  // =============================================================
+  //  Small helpers that read the global `emotions` map (name -> 0..1
+  //  score) and classify/map emotions to colors and energy levels.
 
   float emo(String name) {
     if (emotions.containsKey(name)) return emotions.get(name);
@@ -137,6 +149,8 @@ class ParticleSystem {
            e.equals("nervousness");
   }
 
+  // Fixed hue per emotion, used both for the palette and as a fallback
+  // when no emotion data is available yet (returns neutral hue 0).
   float hueForEmotion(String e) {
     if (e.equals("anger")) return 0;
     if (e.equals("annoyance")) return 15;
@@ -167,158 +181,17 @@ class ParticleSystem {
     if (e.equals("surprise")) return 300;
     if (e.equals("realization")) return 50;
 
-    return emotionHue;
-  }
-
-  String pickEmotionWeighted() {
-    float total = 0;
-
-    for (String key : emotions.keySet()) {
-      if (key.equals("neutral")) continue;
-
-      float val = emotions.get(key);
-      if (val > 0.03) total += val;
-    }
-
-    if (total <= 0.001) return "";
-
-    float r = random(total);
-    float acc = 0;
-
-    for (String key : emotions.keySet()) {
-      if (key.equals("neutral")) continue;
-
-      float val = emotions.get(key);
-      if (val <= 0.03) continue;
-
-      acc += val;
-      if (r <= acc) return key;
-    }
-
-    return "";
+    return 0;
   }
 
   // =============================================================
-  //  COLOR GRADIENT
+  //  EMOTION -> PHYSICS / COLOR MAPPING
   // =============================================================
 
-  void updateParticleColors() {
-    if (emotionalEnergy <= 0.05) return;
-
-    for (int i = 0; i < N; i++) {
-      ChladniParticle p = particles[i];
-
-      float targetHue = hueFromSpatialGradient(p.pos);
-
-      // Transizione morbida verso il colore del campo spaziale
-      p.hue = lerpHue(p.hue, targetHue, Config.HUE_TRANSITION_SPEED);
-    }
-  }
-
-  // Aggiunge le emozioni che superano la soglia alla palette,
-  // senza mai rimuoverle (la palette si resetta solo a fine state, vedi clear()).
-  void _updatePalette() {
-    if (paletteEmotions.size() < MAX_PALETTE_COLORS) {
-      for (String key : emotions.keySet()) {
-        if (key.equals("neutral")) continue;
-        if (paletteEmotions.contains(key)) continue;
-
-        if (emotions.get(key) > 0.03) {
-          paletteEmotions.add(key);
-          if (paletteEmotions.size() >= MAX_PALETTE_COLORS) break;
-        }
-      }
-    }
-
-    // Tiene traccia di quale colore della palette corrisponde
-    // all'emozione attualmente più forte
-    paletteDominantIdx = 0;
-    float bestVal = -1;
-
-    for (int i = 0; i < paletteEmotions.size(); i++) {
-      float val = emo(paletteEmotions.get(i));
-      if (val > bestVal) {
-        bestVal = val;
-        paletteDominantIdx = i;
-      }
-    }
-  }
-
-  // Fa scorrere il gradiente spaziale dei colori nello spazio:
-  // la direzione cambia in modo organico (noise), la velocità segue l'emotionalEnergy.
-  void _updateGradientDrift() {
-    gradientDriftT += 0.002;
-
-    float angle = noise(gradientDriftT) * TWO_PI;
-    float speed = lerp(Config.GRADIENT_DRIFT_MIN_SPEED, Config.GRADIENT_DRIFT_MAX_SPEED, emotionalEnergy);
-
-    gradientOffset.x += cos(angle) * speed;
-    gradientOffset.y += sin(angle) * speed;
-  }
-
-  void resetPalette() {
-    paletteEmotions.clear();
-    gradientOffset.set(0, 0);
-  }
-
-  float hueFromSpatialGradient(PVector pos) {
-    int numColors = paletteEmotions.size();
-
-    if (numColors == 0) return emotionHue;
-    if (numColors == 1) return hueForEmotion(paletteEmotions.get(0));
-
-    // Più basso = gradienti più larghi e morbidi
-    // Più alto = gradienti più fitti e dettagliati
-    float scale = 0.002;
-
-    float t = noise((pos.x + gradientOffset.x) * scale, (pos.y + gradientOffset.y) * scale);
-
-    // Nessuna interpolazione: ogni zona usa uno dei colori della palette.
-    // L'emozione dominante occupa una porzione più ampia dello spazio.
-    float dominantShare = Config.DOMINANT_EMOTION_SHARE;
-    float otherShare = (1.0 - dominantShare) / (numColors - 1);
-
-    float acc = 0;
-
-    for (int i = 0; i < numColors; i++) {
-      acc += (i == paletteDominantIdx) ? dominantShare : otherShare;
-
-      if (t < acc || i == numColors - 1) {
-        return hueForEmotion(paletteEmotions.get(i));
-      }
-    }
-
-    return hueForEmotion(paletteEmotions.get(paletteDominantIdx));
-  }
-
-  float lerpHue(float a, float b, float t) {
-    float d = b - a;
-
-    if (abs(d) > 180) {
-      if (d > 0) a += 360;
-      else b += 360;
-    }
-
-    return (lerp(a, b, t) + 360) % 360;
-  }
-
-  float saturationForParticle(ChladniParticle p) {
-    float baseSat;
-
-    if (isPositiveEmotion(p.emotion)) {
-      baseSat = lerp(20, 90, positiveEnergy);
-    } else if (isNegativeEmotion(p.emotion)) {
-      baseSat = lerp(20, 90, negativeEnergy);
-    } else {
-      baseSat = lerp(10, 60, emotionalEnergy);
-    }
-
-    // Saturazione minima (particelle bianche) quando "neutral" è massimo
-    float neutral = emo("neutral");
-    return baseSat * (1 - neutral);
-  }
-
-  void _processEmotions() {
+  // Aggregates the raw per-emotion scores into positive/negative/total
+  // energy, and smooths the global saturation/brightness targets used
+  // when rendering particles.
+  void processEmotions() {
     float joy = emo("joy");
     float love = emo("love");
     float admiration = emo("admiration");
@@ -358,24 +231,23 @@ class ParticleSystem {
     emotionalEnergy = constrain(positiveEnergy + negativeEnergy, 0, 1);
 
     if (emotionalEnergy > 0.05) {
-      targetSat = lerp(20, 90, emotionalEnergy);
       targetBri = lerp(55, 100, emotionalEnergy);
-
-      emotionSat = lerp(emotionSat, targetSat, 0.08);
       emotionBri = lerp(emotionBri, targetBri, 0.08);
     } else {
-      emotionSat = lerp(emotionSat, 0, 0.05);
       emotionBri = lerp(emotionBri, 60, 0.05);
     }
   }
 
-  void _processEmotionPhysics() {
+  // Maps emotional energy onto the physics parameters: negative emotions
+  // make the field pull harder and the pattern more complex, positive
+  // emotions make particles settle (more damping).
+  void processEmotionPhysics() {
     float tension = negativeEnergy;
     float openness = positiveEnergy;
 
     float targetForceGain = Config.FORCE_GAIN_BASE * lerp(1.1, 1.5, tension);
     float targetDamping = lerp(0.05, 0.13, openness);
-    float targetJitter = lerp(0.05, 0.3, emotionalEnergy); // 0.05 0.3
+    float targetJitter = lerp(0.05, 0.3, emotionalEnergy);
 
     dynamicForceGain = lerp(dynamicForceGain, targetForceGain, 0.06);
     dynamicDamping   = lerp(dynamicDamping, targetDamping, 0.06);
@@ -389,6 +261,136 @@ class ParticleSystem {
 
     modalComplexity = lerp(modalComplexity, targetModalComplexity, 0.05);
   }
+
+  // Per-particle saturation: positive/negative emotions get progressively
+  // more saturated as their energy rises, "neutral" pulls toward white.
+  float saturationForParticle(ChladniParticle p) {
+    float baseSat;
+
+    if (isPositiveEmotion(p.emotion)) {
+      baseSat = lerp(20, 90, positiveEnergy);
+    } else if (isNegativeEmotion(p.emotion)) {
+      baseSat = lerp(20, 90, negativeEnergy);
+    } else {
+      baseSat = lerp(10, 60, emotionalEnergy);
+    }
+
+    float neutral = emo("neutral");
+    return baseSat * (1 - neutral);
+  }
+
+  // =============================================================
+  //  COLOR PALETTE & SPATIAL GRADIENT
+  // =============================================================
+  //  Particles don't all share one color: the canvas is covered by a
+  //  slowly drifting noise field that assigns each spot one of up to
+  //  MAX_PALETTE_COLORS emotion hues, with the dominant emotion
+  //  covering the largest share of space.
+
+  void updateParticleColors() {
+    if (emotionalEnergy <= 0.05) return;
+
+    for (int i = 0; i < N; i++) {
+      ChladniParticle p = particles[i];
+      float targetHue = hueFromSpatialGradient(p.pos);
+
+      // Smooth transition toward the spatial field's target color
+      p.hue = lerpHue(p.hue, targetHue, Config.HUE_TRANSITION_SPEED);
+    }
+  }
+
+  // Adds emotions that cross the threshold to the palette, never removing
+  // any (the palette only resets at the end of a state, see clear()).
+  void updatePalette() {
+    if (paletteEmotions.size() < MAX_PALETTE_COLORS) {
+      for (String key : emotions.keySet()) {
+        if (key.equals("neutral")) continue;
+        if (paletteEmotions.contains(key)) continue;
+
+        if (emotions.get(key) > 0.03) {
+          paletteEmotions.add(key);
+          if (paletteEmotions.size() >= MAX_PALETTE_COLORS) break;
+        }
+      }
+    }
+
+    // Track which palette entry corresponds to the currently strongest emotion
+    paletteDominantIdx = 0;
+    float bestVal = -1;
+
+    for (int i = 0; i < paletteEmotions.size(); i++) {
+      float val = emo(paletteEmotions.get(i));
+      if (val > bestVal) {
+        bestVal = val;
+        paletteDominantIdx = i;
+      }
+    }
+  }
+
+  // Drifts the spatial color gradient over time: direction changes
+  // organically (noise), speed follows emotionalEnergy.
+  void updateGradientDrift() {
+    gradientDriftT += 0.002;
+
+    float angle = noise(gradientDriftT) * TWO_PI;
+    float speed = lerp(Config.GRADIENT_DRIFT_MIN_SPEED, Config.GRADIENT_DRIFT_MAX_SPEED, emotionalEnergy);
+
+    gradientOffset.x += cos(angle) * speed;
+    gradientOffset.y += sin(angle) * speed;
+  }
+
+  void resetPalette() {
+    paletteEmotions.clear();
+    gradientOffset.set(0, 0);
+  }
+
+  // Picks the palette hue for a given position based on a noise field,
+  // not interpolated: each zone uses one of the palette colors outright,
+  // and the dominant emotion occupies a larger share of the space.
+  float hueFromSpatialGradient(PVector pos) {
+    int numColors = paletteEmotions.size();
+
+    if (numColors == 0) return 0;
+    if (numColors == 1) return hueForEmotion(paletteEmotions.get(0));
+
+    // Lower = wider, softer gradient zones; higher = denser, more detailed
+    float scale = 0.002;
+
+    float t = noise((pos.x + gradientOffset.x) * scale, (pos.y + gradientOffset.y) * scale);
+
+    float dominantShare = Config.DOMINANT_EMOTION_SHARE;
+    float otherShare = (1.0 - dominantShare) / (numColors - 1);
+
+    float acc = 0;
+
+    for (int i = 0; i < numColors; i++) {
+      acc += (i == paletteDominantIdx) ? dominantShare : otherShare;
+
+      if (t < acc || i == numColors - 1) {
+        return hueForEmotion(paletteEmotions.get(i));
+      }
+    }
+
+    return hueForEmotion(paletteEmotions.get(paletteDominantIdx));
+  }
+
+  // Interpolates hue along the shortest path around the color wheel.
+  float lerpHue(float a, float b, float t) {
+    float d = b - a;
+
+    if (abs(d) > 180) {
+      if (d > 0) a += 360;
+      else b += 360;
+    }
+
+    return (lerp(a, b, t) + 360) % 360;
+  }
+
+  // =============================================================
+  //  TEXT -> PARTICLES
+  // =============================================================
+  //  Renders the given text offscreen and seeds particle positions
+  //  from its bright pixels, so the pattern starts out spelling the text.
 
   void buildFromText(String txt) {
     float maxW = width * Config.PROMPT_BOX_W_FRAC;
@@ -423,7 +425,7 @@ class ParticleSystem {
     int total = candidates.size();
 
     if (total == 0) {
-      println("[ParticleSystem] buildFromText: nessun pixel trovato");
+      println("[ParticleSystem] buildFromText: no pixels found");
       return;
     }
 
@@ -440,20 +442,24 @@ class ParticleSystem {
 
     globalAlpha = 1.0;
 
-    println("[ParticleSystem] buildFromText — candidati: " + total + ", particelle: " + N);
+    println("[ParticleSystem] buildFromText — candidates: " + total + ", particles: " + N);
   }
 
+  // =============================================================
+  //  MAIN LOOP (called once per frame by the owning state)
+  // =============================================================
+
   void update(float amplitude, float[] fftBands) {
-    _processEmotions();
-    _processEmotionPhysics();
-    _updatePalette();
-    _updateGradientDrift();
+    processEmotions();
+    processEmotionPhysics();
+    updatePalette();
+    updateGradientDrift();
     updateParticleColors();
 
-    _processAudio(amplitude);
-    _processFFT(fftBands);
+    processAudio(amplitude);
+    processFFT(fftBands);
 
-    _stepParticles();
+    stepParticles();
   }
 
   void render() {
@@ -475,9 +481,8 @@ class ParticleSystem {
     popMatrix();
   }
 
-  // ── Debug overlay (DEV_MODE) ─────────────────────────────────
-  // Disegna le linee nodali del campo Chladni (dove _A(x,y) ≈ 0),
-  // cioè le figure verso cui le particelle convergono.
+  // Debug overlay (DEV_MODE): draws the Chladni nodal lines (where the
+  // field amplitude ≈ 0), i.e. the figure the particles converge toward.
   void renderChladniField() {
     pushStyle();
     colorMode(RGB, 255);
@@ -492,7 +497,7 @@ class ParticleSystem {
         float x = px / (float) width;
         float y = py / (float) height;
 
-        if (abs(_A(x, y)) < threshold) {
+        if (abs(chladniAmplitude(x, y)) < threshold) {
           rect(px, py, step, step);
         }
       }
@@ -514,7 +519,14 @@ class ParticleSystem {
     globalAlpha = constrain(a, 0, 1);
   }
 
-  void _processAudio(float amplitude) {
+  // =============================================================
+  //  AUDIO REACTIVITY
+  // =============================================================
+  //  Tracks the amplitude envelope against its own running mean/variance
+  //  (an adaptive z-score) to detect "kicks" — sudden loud moments —
+  //  which trigger a new Chladni mode set and a temporary force boost.
+
+  void processAudio(float amplitude) {
     float e = amplitude;
 
     if (e > env) env = lerp(env, e, Config.ENV_ATK);
@@ -528,7 +540,7 @@ class ParticleSystem {
     float z = (env - baseMean) / sigma;
 
     kEnv = constrain((z - Config.Z_FOLLOW_FLOOR) / max(1e-6, Config.Z_FOLLOW_RANGE), 0, 1);
-    kEnv = _smooth01(kEnv);
+    kEnv = smoothstep01(kEnv);
 
     boolean canFire = (millis() - lastKickMs) > Config.REFRACTORY_MS;
 
@@ -569,7 +581,6 @@ class ParticleSystem {
     );
 
     forceKickValue = lerp(forceKickValue, 0, Config.FORCE_DECAY);
-    forceGain = Config.FORCE_GAIN_BASE + forceKickValue;
 
     float t = constrain(
       (amplitude - Config.VOL_MIN) / max(1e-6, Config.VOL_MAX - Config.VOL_MIN),
@@ -602,7 +613,7 @@ class ParticleSystem {
     return sum / max(1, endBin - startBin);
   }
 
-  void _processFFT(float[] fftBands) {
+  void processFFT(float[] fftBands) {
     if (fftBands == null || fftBands.length < 232) return;
 
     float targetLow  = constrain(bandEnergy(fftBands, 1, 6), 0, 1);
@@ -614,20 +625,28 @@ class ParticleSystem {
     highEnergy = lerp(highEnergy, targetHigh, 0.08);
   }
 
-  void _stepParticles() {
+  // =============================================================
+  //  PARTICLE PHYSICS STEP
+  // =============================================================
+  //  Each frame: follow the Chladni field gradient, add audio-driven
+  //  jitter/push/swirl, apply repulsion + cohesion between neighbors,
+  //  integrate velocity into position, and wrap particles that leave
+  //  the canvas back toward the center.
+
+  void stepParticles() {
     float audioJitter = highEnergy * 0.35;
     float lowPush = lowEnergy * 0.01;
     float swirl = midEnergy * 0.25;
 
     PVector center = new PVector(width / 2.0, height / 2.0);
 
-    if (Config.ENABLE_REPULSION) _buildRepulsionGrid();
-    if (Config.ENABLE_COHESION) _buildCohesionGrid();
+    if (Config.ENABLE_REPULSION) buildRepulsionGrid();
+    if (Config.ENABLE_COHESION) buildCohesionGrid();
 
     for (int i = 0; i < N; i++) {
       ChladniParticle p = particles[i];
 
-      PVector g = _gradV(p.pos.x, p.pos.y);
+      PVector g = gradV(p.pos.x, p.pos.y);
 
       float finalForceGain = dynamicForceGain + forceKickValue;
 
@@ -639,8 +658,8 @@ class ParticleSystem {
       p.vel.x += random(-totalJitter, totalJitter);
       p.vel.y += random(-totalJitter, totalJitter);
 
-      if (Config.ENABLE_REPULSION) _applyRepulsion(p, i);
-      if (Config.ENABLE_COHESION) _applyCohesion(p, i);
+      if (Config.ENABLE_REPULSION) applyRepulsion(p, i);
+      if (Config.ENABLE_COHESION) applyCohesion(p, i);
 
       PVector radial = PVector.sub(p.pos, center);
 
@@ -666,9 +685,9 @@ class ParticleSystem {
     }
   }
 
-  // Bucketta le particelle nella grid spaziale (celle di lato REPULSION_RADIUS),
-  // usata per trovare velocemente i vicini nella repulsione.
-  void _buildRepulsionGrid() {
+  // Buckets particles into the spatial grid (cells sized REPULSION_RADIUS),
+  // used to quickly find neighbors for repulsion.
+  void buildRepulsionGrid() {
     for (IntList cell : repulsionGrid) cell.clear();
 
     for (int i = 0; i < N; i++) {
@@ -678,9 +697,9 @@ class ParticleSystem {
     }
   }
 
-  // Leggera repulsione reciproca tra particelle vicine: evita che collassino
-  // tutte nello stesso punto e fa "ingrassare" le linee del pattern.
-  void _applyRepulsion(ChladniParticle p, int idx) {
+  // Light mutual repulsion between nearby particles: keeps them from
+  // collapsing onto the same point and gives the pattern's lines some width.
+  void applyRepulsion(ChladniParticle p, int idx) {
     float radius = Config.REPULSION_RADIUS;
     if (radius <= 0 || Config.REPULSION_STRENGTH == 0) return;
 
@@ -716,9 +735,9 @@ class ParticleSystem {
     }
   }
 
-  // Bucketta le particelle nella grid spaziale (celle di lato COHESION_RADIUS),
-  // usata per trovare velocemente i vicini nella coesione.
-  void _buildCohesionGrid() {
+  // Buckets particles into the spatial grid (cells sized COHESION_RADIUS),
+  // used to quickly find neighbors for cohesion.
+  void buildCohesionGrid() {
     for (IntList cell : cohesionGrid) cell.clear();
 
     for (int i = 0; i < N; i++) {
@@ -728,9 +747,9 @@ class ParticleSystem {
     }
   }
 
-  // Leggera attrazione reciproca tra particelle vicine: tiene uniti i gruppi
-  // di particelle, dando più corpo alle linee del pattern senza farle collassare.
-  void _applyCohesion(ChladniParticle p, int idx) {
+  // Light mutual attraction between nearby particles: keeps clusters
+  // together, giving the pattern's lines more body without collapsing them.
+  void applyCohesion(ChladniParticle p, int idx) {
     float radius = Config.COHESION_RADIUS;
     if (radius <= 0 || Config.COHESION_STRENGTH == 0) return;
 
@@ -766,7 +785,15 @@ class ParticleSystem {
     }
   }
 
-  float _A(float x, float y) {
+  // =============================================================
+  //  CHLADNI FIELD MATH
+  // =============================================================
+  //  The field is a sum of 2-3 weighted vibration modes (rectangular
+  //  or circular plate), chosen randomly and re-rolled on each audio
+  //  kick. Particles are pushed downhill on V = A², the squared field
+  //  amplitude, so they settle on its nodal lines (A ≈ 0).
+
+  float chladniAmplitude(float x, float y) {
     // Zoom in on the pattern center: same modes span a smaller portion of
     // [0,1], so their nodal lines appear larger on screen.
     float zx = 0.5 + (x - 0.5) / Config.CHLADNI_SCALE;
@@ -775,23 +802,23 @@ class ParticleSystem {
     float a = 0;
 
     if (!randomSet.isCircular) {
-      a += randomSet.w1 * _modeRect(zx, zy, randomSet.m1, randomSet.n1);
-      a += randomSet.w2 * _modeRect(zx, zy, randomSet.m2, randomSet.n2);
-      a += randomSet.w3 * _modeRect(zx, zy, randomSet.m3, randomSet.n3);
+      a += randomSet.w1 * chladniModeRect(zx, zy, randomSet.m1, randomSet.n1);
+      a += randomSet.w2 * chladniModeRect(zx, zy, randomSet.m2, randomSet.n2);
+      a += randomSet.w3 * chladniModeRect(zx, zy, randomSet.m3, randomSet.n3);
     } else {
-      a += randomSet.w1 * _modeCirc(zx, zy, randomSet.m1, randomSet.n1);
-      a += randomSet.w2 * _modeCirc(zx, zy, randomSet.m2, randomSet.n2);
-      a += randomSet.w3 * _modeCirc(zx, zy, randomSet.m3, randomSet.n3);
+      a += randomSet.w1 * chladniModeCirc(zx, zy, randomSet.m1, randomSet.n1);
+      a += randomSet.w2 * chladniModeCirc(zx, zy, randomSet.m2, randomSet.n2);
+      a += randomSet.w3 * chladniModeCirc(zx, zy, randomSet.m3, randomSet.n3);
     }
 
-    return _tanh(a * 1.2);
+    return fastTanh(a * 1.2);
   }
 
-  float _modeRect(float x, float y, int m, int n) {
+  float chladniModeRect(float x, float y, int m, int n) {
     return sin(m * PI * x) * sin(n * PI * y);
   }
 
-  float _modeCirc(float x, float y, int m, int n) {
+  float chladniModeCirc(float x, float y, int m, int n) {
     float cx = x - 0.5;
     float cy = y - 0.5;
     float r = min(sqrt(cx * cx + cy * cy) / 0.5, 1.0);
@@ -799,8 +826,10 @@ class ParticleSystem {
     return sin(n * PI * r) * cos(m * atan2(cy, cx));
   }
 
-  float _V(float x, float y) {
-    float v = _A(x, y);
+  // Potential particles descend: squared field amplitude, with an extra
+  // wall added near the canvas edge to keep particles from drifting off.
+  float potentialV(float x, float y) {
+    float v = chladniAmplitude(x, y);
     v = v * v;
 
     float cx = x - 0.5;
@@ -815,18 +844,22 @@ class ParticleSystem {
     return v;
   }
 
-  PVector _gradV(float px, float py) {
+  // Numeric gradient of the potential at a pixel position, used to push
+  // particles downhill toward the nodal lines.
+  PVector gradV(float px, float py) {
     float x = px / width;
     float y = py / height;
     float ex = Config.EPS / width;
     float ey = Config.EPS / height;
 
-    float dVdx = (_V(_c01(x + ex), y) - _V(_c01(x - ex), y)) / (2.0 * ex) / width;
-    float dVdy = (_V(x, _c01(y + ey)) - _V(x, _c01(y - ey))) / (2.0 * ey) / height;
+    float dVdx = (potentialV(clamp01(x + ex), y) - potentialV(clamp01(x - ex), y)) / (2.0 * ex) / width;
+    float dVdy = (potentialV(x, clamp01(y + ey)) - potentialV(x, clamp01(y - ey))) / (2.0 * ey) / height;
 
     return new PVector(dVdx, dVdy);
   }
 
+  // Rolls a new random combination of Chladni modes. Modal complexity
+  // (driven by emotion) widens the range of mode numbers used.
   void pickRandomModeSet() {
     randomSet.isCircular = (random(1) < Config.CIRCULAR_PROBABILITY);
 
@@ -834,23 +867,23 @@ class ParticleSystem {
     int highMax = int(lerp(5, 14, modalComplexity));
 
     if (!randomSet.isCircular) {
-      randomSet.m1 = _ri(2, lowMax);
-      randomSet.n1 = _ri(2, lowMax);
+      randomSet.m1 = randomInt(2, lowMax);
+      randomSet.n1 = randomInt(2, lowMax);
 
-      randomSet.m2 = _ri(2, highMax);
-      randomSet.n2 = _ri(2, highMax);
+      randomSet.m2 = randomInt(2, highMax);
+      randomSet.n2 = randomInt(2, highMax);
 
-      randomSet.m3 = _ri(2, highMax + 2);
-      randomSet.n3 = _ri(2, highMax + 2);
+      randomSet.m3 = randomInt(2, highMax + 2);
+      randomSet.n3 = randomInt(2, highMax + 2);
     } else {
-      randomSet.m1 = _ri(0, lowMax);
-      randomSet.n1 = _ri(1, lowMax);
+      randomSet.m1 = randomInt(0, lowMax);
+      randomSet.n1 = randomInt(1, lowMax);
 
-      randomSet.m2 = _ri(0, highMax);
-      randomSet.n2 = _ri(1, highMax);
+      randomSet.m2 = randomInt(0, highMax);
+      randomSet.n2 = randomInt(1, highMax);
 
-      randomSet.m3 = _ri(0, highMax + 2);
-      randomSet.n3 = _ri(1, highMax + 2);
+      randomSet.m3 = randomInt(0, highMax + 2);
+      randomSet.n3 = randomInt(1, highMax + 2);
     }
 
     randomSet.w1 = 1.0;
@@ -864,34 +897,40 @@ class ParticleSystem {
       particles[i].vel.set(random(-0.5, 0.5), random(-0.5, 0.5));
       particles[i].emotion = "";
       particles[i].hue = 0;
-      particles[i].nextHue = 0;
     }
   }
 
-  float _tanh(float x) {
+  // =============================================================
+  //  SMALL MATH UTILITIES
+  // =============================================================
+
+  float fastTanh(float x) {
     float e = exp(2 * x);
     return (e - 1) / (e + 1);
   }
 
-  float _smooth01(float t) {
+  float smoothstep01(float t) {
     t = constrain(t, 0, 1);
     return t * t * (3 - 2 * t);
   }
 
-  float _c01(float t) {
+  float clamp01(float t) {
     return max(0, min(1, t));
   }
 
-  int _ri(int lo, int hi) {
+  int randomInt(int lo, int hi) {
     return (int) random(lo, hi + 1);
   }
 }
+
+// =============================================================
+//  SUPPORTING CLASSES
+// =============================================================
 
 class ChladniParticle {
   PVector pos = new PVector();
   PVector vel = new PVector();
   float hue = 0;
-  float nextHue = 0;
   String emotion = "";
 }
 
