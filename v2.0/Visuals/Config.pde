@@ -134,16 +134,8 @@ static class Config {
   // Visuals
   // Particle stroke weight at rest (no kick)
   static float  BASE_STROKE_W         = 0.8/4; // 0.8
-  // Particle stroke weight target during a strong kick envelope
-  static float  KICK_STROKE_W         = BASE_STROKE_W; 
-  // Smoothing speed for stroke weight transitions (0..1)
-  static float  W_FOLLOW              = 0.18;
   // Particle brightness at rest, HSB scale 0→100
   static float  BASE_LUM              = 100.0;
-  // Particle brightness target during a strong kick envelope, HSB scale 0→100
-  static float  KICK_LUM              = 100.0;
-  // Smoothing speed for brightness transitions (0..1)
-  static float  L_FOLLOW              = 0.10;
   // Particle hue, HSB scale 0→360 (0 = white/grey when saturation is 0)
   static float  PARTICLE_HUE          = 0.0;
   // Particle saturation, HSB scale 0→100 (0 = greyscale)
