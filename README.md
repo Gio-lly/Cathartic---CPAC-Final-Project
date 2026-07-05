@@ -78,7 +78,7 @@ Cathartic is a distributed system spanning **three environments** that talk to e
 ![Architecture](images/Cathartic%20architecture.png)
 
 ### Processing (local) — interface, visuals, audio analysis
-Processing manages the interactive and visual side of the installation. Built with the P3D / OpenGL renderer, it controls the complete interaction flow through a finite-state machine, from the initial disclaimer and text input to the audiovisual experience and final reset. 
+Processing manages the interactive and visual side of the installation. Built with the P2D / OpenGL renderer, it controls the complete interaction flow through a finite-state machine, from the initial disclaimer and text input to the audiovisual experience and final reset. 
 
 When the visitor submits a message, Processing sends the text to the local Python application via OSC. The same text is rasterized into pixels and used to define the initial distribution of the particles, allowing the written message to become the starting shape of the visualization. The particle system is inspired by Chladni resonance patterns and is influenced by two main data sources:
 
@@ -127,7 +127,7 @@ Two WebSocket servers run on the host:
 
 ### Tech stack at a glance
 
-- **Processing** — P3D renderer, Sound library (JSyn `AudioIn`, `Amplitude`, `FFT`)
+- **Processing** — P2D renderer, Sound library (JSyn `AudioIn`, `Amplitude`, `FFT`)
 - **Python** — `transformers` + `torch` (GoEmotions), `python-osc`, `websocket-client`
 - **Magenta host** — Magenta RT (large), JAX/CUDA, Gradio, `websockets`, `nest_asyncio`
 - **Browser** — Web Audio API, AudioWorklet ring buffer
@@ -243,7 +243,7 @@ In the Lightning Studio, open the **Ports** panel and add **`9002`** (prompts) a
 https://<studio-id>-9002.lightning.ai   →  wss://<studio-id>-9002.lightning.ai
 https://<studio-id>-9004.lightning.ai   →  wss://<studio-id>-9004.lightning.ai
 ```
-- Put the **:9002** `wss://` URL into `prompt_ws_url` in local `detect_emotion.py` (step 2).
+- Put the **:9002** `wss://` URL into `LIGHTNING_WS_URL` in local `detect_emotion.py` (step 2).
 - Put the **:9004** `wss://` URL into the browser audio player.
 
 When the inference notebook is running you should see both servers come up:
@@ -285,7 +285,7 @@ Before launching, open `sound/detect_emotion.py` and check the configuration blo
 ```python
   server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", OSC_RECV_PORT), disp)
 ```
-- `prompt_ws_url` — the **:9002** Lightning WebSocket URL from step 1.6.
+- `LIGHTNING_WS_URL` — the **:9002** Lightning WebSocket URL from step 1.6.
 Run it:
 ```bash
 python sound/detect_emotion.py
@@ -414,9 +414,9 @@ Type a feeling or a secret in the **Input** state → emotion is detected → th
 
 ---
 ## Project Structure
-
+```text
 Cathartic/
-├── processing/               # Processing sketch (P3D)
+├── processing/               # Processing sketch (P2D)
 │   ├── AudioManager.pde      # mic/line input, amplitude + FFT analysis
 │   ├── ParticleSystem.pde    # audio-reactive particle field
 │   ├── States.pde            # Disclaimer → Input → Particles → Thanks
@@ -426,13 +426,13 @@ Cathartic/
 │   ├── DevMode.pde           # live diagnostics overlay
 │   ├── InputHandler.pde      # manages the visitor's text input and editing
 │   └── StateMachine.pde      # controls state transitions and shared state behaviour 
-├── sound/                 # local Python pipeline
-│   ├── detect_emotion.py  # OSC server + GoEmotions
-│   ├── emotion_smoother.py# EmotionSmoother (ramping + dispatch)
+├── sound/                    # local Python pipeline
+│   ├── detect_emotion.py     # OSC server + GoEmotions
+│   ├── emotion_smoother.py   # EmotionSmoother (ramping + dispatch)
 │   └── emotions_to_prompt.py # EMOTION_PROMPTS mapping
-├── setup.ipynb            # Lightning: builds the Magenta RT environment (run first)
-└── inference.ipynb        # Lightning: Magenta RT generation + WS servers (:9002 / :9004)
-
+├── setup.ipynb               # Lightning: builds the Magenta RT environment (run first)
+└── inference.ipynb           # Lightning: Magenta RT generation + WS servers (:9002 / :9004)
+```
 ---
 
 ## Credits
