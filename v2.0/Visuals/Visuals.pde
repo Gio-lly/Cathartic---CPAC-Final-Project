@@ -29,7 +29,6 @@
   // OSC
   OscP5 oscTextSender;
   OscP5 oscEmotionsReceiver;
-  OscP5 audioDataReceiver;
   NetAddress pythonLocation;
   
   // Hash map to store emotions
