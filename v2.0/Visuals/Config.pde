@@ -14,7 +14,6 @@ static class Config {
   static final int NUM_STATES       = 4;
 
   // Timing (ms)
-  static int DISCLAIMER_DURATION    = 5000;   // disclaimer duration
   static int PARTICLES_DURATION     = 60000*2;  // particles duration (from Python via OSC)
   static int THANKS_FADE_IN         = 1500*2; // fade-in "Thank you."
   static int THANKS_HOLD            = 2000*2; // "Thank you." duration
@@ -23,8 +22,6 @@ static class Config {
 
   // Colors
   static int BG_COLOR               = 0;               // black
-  static int TEXT_COLOR             = 0xFFFFFFFF;      // white
-  static int PARTICLE_BASE_COLOR    = 0xFFFFFFFF;
   static int DISCLAIMER_TEXT_COLOR  = 0xFFAAAAAA;      // light grey
 
   // Text
@@ -136,10 +133,6 @@ static class Config {
   static float  BASE_STROKE_W         = 0.8/4; // 0.8
   // Particle brightness at rest, HSB scale 0→100
   static float  BASE_LUM              = 100.0;
-  // Particle hue, HSB scale 0→360 (0 = white/grey when saturation is 0)
-  static float  PARTICLE_HUE          = 0.0;
-  // Particle saturation, HSB scale 0→100 (0 = greyscale)
-  static float  PARTICLE_SAT          = 0.0;
   // Particle trasparancy
   static float  PARTICLE_TRASP        = 160.0;
   // Particle smooth transitions vs not black background
