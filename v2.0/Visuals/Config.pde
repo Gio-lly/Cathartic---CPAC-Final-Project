@@ -107,7 +107,7 @@ static class Config {
   // Amplitude level considered full volume (upper bound for normalization)
   static float  VOL_MAX               = 0.1;
   
-  // Kick-driven force impulse
+  // Transient-driven force impulse
   // Extra force added to particles on each detected kick (scales with kick strength)
   static float  FORCE_KICK_BOOST      = 20.0/15; // 50
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
@@ -115,20 +115,16 @@ static class Config {
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
   static float  FORCE_DECAY           = 0.10;
   
-  // Kick envelope detector
-  // High-pass cutoff for kick band isolation (Hz) — filters out DC / sub rumble
-  static float  KICK_HP               = 20.0;
-  // Low-pass cutoff for kick band isolation (Hz) — keeps only bass transients
-  static float  KICK_LP               = 140.0;
+  // Adaptive amplitude-transient detector
   // Envelope attack speed: how fast the follower rises on a transient (0..1)
   static float  ENV_ATK               = 0.55;
   // Envelope release speed: how fast the follower falls after a transient (0..1)
   static float  ENV_REL               = 0.08;
   // EWMA smoothing for adaptive baseline mean/variance (lower = slower adaptation)
   static float  BASE_ALPHA            = 0.01;
-  // Z-score threshold above which a discrete kick event is fired
+  // Z-score threshold above which a transient event is triggered
   static float  Z_THRESH              = 0.8;
-  // Lockout period after a kick fires — prevents double-triggers (milliseconds)
+  // Lockout period after a transient is triggered — prevents double-triggers (milliseconds)
   static int    REFRACTORY_MS         = 500; // 100
   // Z-score floor below which continuous kEnv is treated as zero (dead zone)
   static float  Z_FOLLOW_FLOOR        = 0.2;
