@@ -17,7 +17,6 @@
 * [Project Structure](#project-structure)
 * [Credits](#credits)
 
-
 ---
 
 ## The Project
@@ -433,7 +432,6 @@ Cathartic/
 │   └── emotions_to_prompt.py # EMOTION_PROMPTS mapping
 ├── setup.ipynb            # Lightning: builds the Magenta RT environment (run first)
 └── inference.ipynb        # Lightning: Magenta RT generation + WS servers (:9002 / :9004)
-```
 
 ---
 
