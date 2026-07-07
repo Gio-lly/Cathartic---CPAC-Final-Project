@@ -1,5 +1,5 @@
 // AudioManager.pde | audio input, playback and real-time signal analysis
-// Manages live audio input, providing real-time amplitude, FFT, beat, kick and snare analysis for the visual system.
+// Manages live audio input and provides smoothed amplitude and FFT data to the visual system.
 
 class AudioManager {
   Sound        sound;
@@ -7,7 +7,6 @@ class AudioManager {
   SoundFile    player;
   FFT          fft;
   Amplitude    amp;
-  BeatDetector beat;
 
   boolean active            = false;
   boolean fileMode          = false;
@@ -29,9 +28,6 @@ class AudioManager {
     rawFft    = new float[FFT_BANDS];
     println("[AudioManager] Sound inizializzato");
   }
-
-  // Default audio input
-  void start() { startMic(); }
 
   // Live audio input
   void startMic() {
@@ -90,19 +86,15 @@ class AudioManager {
   void _initDSP(AudioIn source) {
     fft  = new FFT(Visuals.this, FFT_BANDS);
     amp  = new Amplitude(Visuals.this);
-    beat = new BeatDetector(Visuals.this);
     fft.input(source);
     amp.input(source);
-    beat.input(source);
   }
 
   void _initDSP(SoundFile source) {
     fft  = new FFT(Visuals.this, FFT_BANDS);
     amp  = new Amplitude(Visuals.this);
-    beat = new BeatDetector(Visuals.this);
     fft.input(source);
     amp.input(source);
-    beat.input(source);
   }
 
   // Audio resource cleanup
@@ -132,34 +124,7 @@ class AudioManager {
     return fftValues;
   }
 
-  // Beat and percussion detection
-  boolean isBeat() {
-    if (!active || beat == null) return false;
-    return beat.isBeat();
-  }
-
-  // Kick detection based on low-frequency energy
-  boolean isKick() {
-    if (!active || fftValues == null) return false;
-    float energy = 0;
-    int lo = 1, hi = 8;             // ~ 0-350 Hz to 44.1kHz / 512 bands
-    for (int i = lo; i < hi; i++) energy += fftValues[i];
-    energy /= (hi - lo);
-    return energy > 0.04; // Empirical detection threshold
-  }
-
-  // Snare detection based on mid-to-high-frequency energy
-  boolean isSnare() {
-    if (!active || fftValues == null) return false;
-    float energy = 0;
-    int lo = 40, hi = 100;          // ~ 1.5-4 kHz
-    for (int i = lo; i < hi; i++) energy += fftValues[i];
-    energy /= (hi - lo);
-    return energy > 0.02; // Empirical detection threshold
-  }
-
   // Playback state and controls
-  boolean isFileMode() { return fileMode; }
   boolean isPlaying()  { return fileMode && player != null && player.isPlaying(); }
 
   void togglePause() {
