@@ -2,7 +2,7 @@
 
 > An interactive audiovisual installation where what you feel becomes what you hear and see.
 
-*CPAC — Creative Programming and Computing, Final Project. Music Engineering.*
+*CPAC — Creative Programming and Computing, Final Project. Music and Acoustic Engineering.*
 
 ## Index
 * [The Project](#the-project)
@@ -21,12 +21,12 @@
 
 ## The Project
 
-**Cathartic** is an interactive installation about externalizing what we keep inside. A visitor approaches a screen, reads a short disclaimer, and is invited to **type how they feel — or to confess a secret**. The text is never saved or shown to anyone; it exists only for the few seconds it takes the system to read it. In that moment it stops being words and becomes atmosphere.
+**Cathartic** is an interactive installation about externalizing what we keep inside. A visitor approaches a screen and is invited to **type how they feel — or to confess a secret**. The text is never saved or shown to anyone; it exists only for the few seconds it takes the system to read it.
 
 The typed text is analyzed in real time for emotional content. That emotion drives two things at once:
 
-- **Generative ambient music** that shifts in mood as the detected emotion changes.
-- **A reactive particle field**, inspired by Chladni resonance patterns, whose colours and visual character reflect the detected emotions, while its motion breathes, swirls, and reorganizes itself in response to the generated music.
+- **Generative electronic music** that shifts in mood as the detected emotion changes.
+- **A reactive particle field**, inspired by Chladni resonance patterns, whose colours and physic reflect the detected emotions, while its motion breathes, swirls, and reorganizes itself in response to the generated music.
 
 The result is an interconnected relationship between the visitor's inner state, sound, and image: you write a feeling, the room fills with a sound that matches it, and the visuals dance to that sound. The act of putting an emotion into words — and then watching it dissolve into light and music — is the cathartic gesture the piece is named after.
 
@@ -61,9 +61,9 @@ Cathartic is a distributed system spanning **three environments** that talk to e
            │ audio (virtual cable)                          │ (prompts, :9002)
            │                                                ▼
    ┌───────┴──────────────────────────────────────────────────────┐
-   │                  MAGENTA HOST (remote GPU — Lightning)       │
-   │   • Magenta RT, system.MagentaRT(tag="large", lazy=False)    │
-   │   • Gradio control panel (sampling params, text/audio prompt)│
+   │              MAGENTA HOST (remote GPU — Lightning)           │
+   │   • Magenta RT (large)                                       │
+   │   • Gradio control panel                                     │
    │   • WebSocket server :9002 (receives weighted prompts)       │
    │   • WebSocket server :9004 (broadcasts raw float32 PCM       │
    │     @ 48 kHz)                                                │
@@ -101,7 +101,7 @@ Instead of assigning the text to a single category, the model returns a score fo
 The resulting weighted prompt dictionary is sent to the Magenta host over a **WebSocket** (UDP/OSC can't reach a remote GPU host like Lightning — see below).
 
 ### Magenta host (remote GPU) — music generation
-A pair of notebooks running **[Magenta RT](https://github.com/magenta/magenta-realtime)** (Google's open-weights real-time music model). The model is instantiated as `system.MagentaRT(tag="large", lazy=False)` — the **large** open-weights model — and generates **stereo float32 audio at 48 kHz** in short chunks, steered live by the weighted prompts.
+A jupyter notebook running **[Magenta RT](https://github.com/magenta/magenta-realtime)** (Google's open-weights real-time music model). The model is instantiated as `system.MagentaRT(tag="large", lazy=False)` — the **large** open-weights model — and generates **stereo float32 audio at 48 kHz** in short chunks, steered live by the weighted prompts.
 
 - **Gradio** is used **only** as a control panel: text/audio prompts and the sampling parameters (temperature, top-k, guidance). The audio does **not** travel through Gradio.
 - The audio is streamed separately as **raw float32 PCM over a WebSocket** into a **browser AudioWorklet** ring buffer for gapless playback.
@@ -121,9 +121,6 @@ Two WebSocket servers run on the host:
 | Magenta host → Browser | **WebSocket** | `9004` | raw float32 PCM @ 48 kHz |
 | Browser → Processing | **virtual audio cable** | — | audio for analysis |
 
-> **Note on the OSC port:** the local OSC port is the `OSC_RECV_PORT` constant in `detect_emotion.py`. It **must match** the port Processing sends to in `Osc.pde`. Confirm the two values are identical before running.
-
-> **Why WebSocket and not OSC to the host?** A remote GPU host such as Lightning AI blocks incoming UDP, so OSC (which is UDP-based) never arrives. WebSocket runs over HTTP/WSS, which is exposed cleanly. OSC is therefore used **only** for the local Processing ↔ Python hop.
 
 ### Tech stack at a glance
 
@@ -135,15 +132,12 @@ Two WebSocket servers run on the host:
 
 ---
 
-## A Note on Compute: Magenta v1 vs v2 (and Local Generation)
+## Compute Requirements: Why Magenta RT Runs on a Remote GPU
 
 This project runs **Magenta RT v1**, the JAX/GPU version of the model. **v1 is computationally heavy** — the `tag="large"` model needs an **NVIDIA A100 or better** to generate audio in real time. Because few machines have that kind of GPU on hand, we host the model **remotely on a Lightning AI GPU Studio**.
 
 **Lightning is not strictly required** — any environment with an A100-class GPU and the dependencies below will work. Lightning is simply a convenient way to rent that hardware and expose the WebSocket ports.
 
-Recently, Google released **[Magenta RealTime 2](https://github.com/magenta/magenta-realtime)**, an updated open-weights model that **can run locally in real time** — notably on **Apple Silicon Macs** via its MLX backend (48 kHz stereo, ~200 ms control latency) — without a remote GPU. **A future release of Cathartic may move music generation fully local using v2**, which would remove the need for a remote host, port exposure, and (potentially) even the virtual-cable audio routing, collapsing the whole pipeline onto a single machine.
-
-For now, the setup below targets **v1 on a remote GPU**.
 
 ---
 
@@ -230,11 +224,8 @@ conda install -y -c conda-forge ffmpeg   # decode mp3/ogg audio prompts via libr
 ```
 
 **1.5 — Run the `inference` notebook against `magenta_venv`.**
-Make sure the inference notebook uses the **`magenta_venv`** environment. Its **very first cell**, before any other import, must neutralize Lightning's default `uvloop` (otherwise you get `uvloop` / `nest_asyncio` errors and ports that "won't free"):
-```python
-import asyncio
-asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-```
+Make sure the inference notebook uses the **`magenta_venv`** environment. Its **very first cell**, before any other import.
+
 If anything misbehaves, **Kernel → Restart** and re-run from this cell.
 
 **1.6 — Expose the ports.**
@@ -416,7 +407,7 @@ Type a feeling or a secret in the **Input** state → emotion is detected → th
 ## Project Structure
 ```text
 Cathartic/
-├── processing/               # Processing sketch (P2D)
+├── visuals/               # Processing sketch (P2D)
 │   ├── AudioManager.pde      # mic/line input, amplitude + FFT analysis
 │   ├── ParticleSystem.pde    # audio-reactive particle field
 │   ├── States.pde            # Disclaimer → Input → Particles → Thanks

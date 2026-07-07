@@ -196,6 +196,7 @@ class ParticleSystem {
     } else {
       emotionBri = lerp(emotionBri, 60, 0.05);
     }
+  }
 
   // Maps emotional energy onto the physics parameters: negative emotions
   // make the field pull harder and the pattern more complex, positive
@@ -221,14 +222,14 @@ class ParticleSystem {
     modalComplexity = lerp(modalComplexity, targetModalComplexity, 0.05);
   }
 
-    // Global saturation increases with emotional intensity,
-    // while neutral energy shifts the palette toward white.
-    float currentSaturation() {
-      float baseSaturation = lerp(10, 60, emotionalEnergy);
-      float neutralEnergy = emo("neutral");
-    
-      return baseSaturation * (1.0 - neutralEnergy);
-    }
+  // Global saturation increases with emotional intensity,
+  // while neutral energy shifts the palette toward white.
+  float currentSaturation() {
+    float baseSaturation = lerp(10, 60, emotionalEnergy);
+    float neutralEnergy = emo("neutral");
+
+    return baseSaturation * (1.0 - neutralEnergy);
+  }
 
 //  COLOR PALETTE & SPATIAL GRADIENT
 
