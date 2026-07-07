@@ -17,7 +17,6 @@
 * [Project Structure](#project-structure)
 * [Credits](#credits)
 
-
 ---
 
 ## The Project
@@ -27,9 +26,9 @@
 The typed text is analyzed in real time for emotional content. That emotion drives two things at once:
 
 - **Generative ambient music** that shifts in mood as the detected emotion changes.
-- **A reactive particle field** (Chladni-like resonance patterns) that breathes, swirls, and reorganizes itself in response to the music it hears.
+- **A reactive particle field**, inspired by Chladni resonance patterns, whose colours and visual character reflect the detected emotions, while its motion breathes, swirls, and reorganizes itself in response to the generated music.
 
-The result is a closed feedback loop between the visitor's inner state, sound, and image: you write a feeling, the room fills with a sound that matches it, and the visuals dance to that sound. The act of putting an emotion into words — and then watching it dissolve into light and music — is the cathartic gesture the piece is named after.
+The result is an interconnected relationship between the visitor's inner state, sound, and image: you write a feeling, the room fills with a sound that matches it, and the visuals dance to that sound. The act of putting an emotion into words — and then watching it dissolve into light and music — is the cathartic gesture the piece is named after.
 
 The experience runs as a simple state machine:
 
@@ -39,45 +38,67 @@ Disclaimer  →  Input  →  Particles  →  Thanks  →  (back to Disclaimer)
 
 ---
 
+## Privacy and Data Handling
+
+Cathartic is designed as an ephemeral experience. The visitor's text is used only while the audiovisual interaction is being generated and is not intentionally stored in a file, database, or user profile. The message is transmitted locally from Processing to the Python emotion-detection pipeline, where it is processed in memory. Only the resulting emotion values and musical prompt weights are passed to the other components of the system.
+
+---
+
 ## How It Works (Technology)
 
 Cathartic is a distributed system spanning **three environments** that talk to each other in real time.
+
 ```
-┌──────────────────────┐     OSC      ┌──────────────────────┐
-│   PROCESSING (local) │ ───────────► │    PYTHON (local)    │
-│                      │   user text  │                      │
-│  • State machine     │              │  • OSC receiver      │
-│  • Particle visuals  │              │  • GoEmotions model  │
-│  • Audio analysis    │              │  • EmotionSmoother   │
-│    (FFT / amplitude) │              │  • emotion→prompt    │
-└──────────▲───────────┘              └──────────┬───────────┘
-           │                                     │ WebSocket
-           │ audio (virtual cable)               │ (prompts, :9002)
-           │                                     ▼
-┌──────────┴───────────────────────────────────────────────────┐
-│                  MAGENTA HOST (remote GPU — Lightning)        │
-│   • Magenta RT, system.MagentaRT(tag="large", lazy=False)     │
-│   • Gradio control panel (sampling params, text/audio prompt) │
-│   • WebSocket server :9002  (receives weighted prompts)       │
-│   • WebSocket server :9004  (broadcasts raw float32 PCM @48kHz)│
-└───────────────────────────────────────────────────────────────┘
+┌──────────────────────┐     OSC: user text      ┌──────────────────────┐
+│   PROCESSING (local) │ ──────────────────────► │    PYTHON (local)    │
+│                      │ ◄────────────────────── │                      │
+│  • State machine     │   OSC: emotion values   │  • OSC receiver      │
+│  • Particle visuals  │                         │  • GoEmotions model  │
+│  • Audio analysis    │                         │  • EmotionSmoother   │
+│    (FFT / amplitude) │                         │  • emotion→prompt    │
+└──────────▲───────────┘                         └──────────┬───────────┘
+           │                                                │ WebSocket
+           │ audio (virtual cable)                          │ (prompts, :9002)
+           │                                                ▼
+   ┌───────┴──────────────────────────────────────────────────────┐
+   │                  MAGENTA HOST (remote GPU — Lightning)       │
+   │   • Magenta RT, system.MagentaRT(tag="large", lazy=False)    │
+   │   • Gradio control panel (sampling params, text/audio prompt)│
+   │   • WebSocket server :9002 (receives weighted prompts)       │
+   │   • WebSocket server :9004 (broadcasts raw float32 PCM       │
+   │     @ 48 kHz)                                                │
+   └──────────────────────────────────────────────────────────────┘
            │ audio (WebSocket :9004)
            ▼
-   Browser AudioWorklet player ──► speakers ──► (virtual cable) ──► Processing
+   Browser AudioWorklet player ──► speakers
+               │
+               └──► virtual audio cable ──► Processing
 ```
+
 ![Architecture](images/Cathartic%20architecture.png)
 
 ### Processing (local) — interface, visuals, audio analysis
-The front end of the installation. Built with the **P3D / OpenGL** renderer. Handles the state machine, the particle simulation, and real-time analysis (amplitude + FFT, via the Processing **Sound** library / JSyn `AudioIn`) of the music coming back from the Magenta host. The particle system reads low/mid/high FFT energy bands to drive its motion, and a `DevMode` overlay exposes live readouts (e.g. `Audio amp:`) for diagnostics.
+Processing manages the interactive and visual side of the installation. Built with the P2D / OpenGL renderer, it controls the complete interaction flow through a finite-state machine, from the initial disclaimer and text input to the audiovisual experience and final reset. 
+
+When the visitor submits a message, Processing sends the text to the local Python application via OSC. The same text is rasterized into pixels and used to define the initial distribution of the particles, allowing the written message to become the starting shape of the visualization. The particle system is inspired by Chladni resonance patterns and is influenced by two main data sources:
+
+- Emotion values received from Python, which shape the colour palette, visual energy, and broader character of the particle field.
+- Audio features extracted from the generated music, which control its immediate movement and response over time.
+
+The audio returning from the Magenta host is analyzed in real time using the Processing Sound library. Amplitude tracking, FFT frequency bands, and transient detection are used to make the particles expand, rotate, vibrate, and reorganize themselves in response to the music.
+
+A dedicated DevMode overlay provides live diagnostic information, including the current state, frame rate, audio amplitude, frequency-band activity, and incoming emotion values.
 
 ### Python (local) — emotion detection
-A local pipeline of three scripts:
+The local Python pipeline connects the visitor’s text to both the music-generation system and the Processing visuals. It is organized into three main scripts:
 
 - `detect_emotion.py` — runs an **OSC server** that receives the visitor's text from Processing, and runs the **GoEmotions** model.
-- `emotion_smoother.py` — the `EmotionSmoother` class, which ramps the emotion vector over time (so the music morphs smoothly instead of jumping) and dispatches prompts.
+- `emotion_smoother.py` — the `EmotionSmoother` class, which gradually interpolates the emotion vector over time, preventing abrupt changes in both the music and the visuals.
 - `emotions_to_prompt.py` — maps the 28 GoEmotions labels to descriptive **musical prompt strings** (`EMOTION_PROMPTS`).
 
-Emotion is detected with **`SamLowe/roberta-base-go_emotions`** (HuggingFace Transformers). The resulting weighted prompt dictionary is sent to the Magenta host over a **WebSocket** (UDP/OSC can't reach a remote GPU host like Lightning — see below).
+Emotion is detected with **`SamLowe/roberta-base-go_emotions`**, a multi-label text-classification model based on RoBERTa and accessed through Hugging Face Transformers. 
+Instead of assigning the text to a single category, the model returns a score for each emotion, allowing multiple emotional qualities to coexist in the same input.
+The resulting weighted prompt dictionary is sent to the Magenta host over a **WebSocket** (UDP/OSC can't reach a remote GPU host like Lightning — see below).
 
 ### Magenta host (remote GPU) — music generation
 A pair of notebooks running **[Magenta RT](https://github.com/magenta/magenta-realtime)** (Google's open-weights real-time music model). The model is instantiated as `system.MagentaRT(tag="large", lazy=False)` — the **large** open-weights model — and generates **stereo float32 audio at 48 kHz** in short chunks, steered live by the weighted prompts.
@@ -95,6 +116,7 @@ Two WebSocket servers run on the host:
 | Link | Transport | Port | Carries |
 |---|---|---|---|
 | Processing → Python (local) | **OSC / UDP** | `OSC_RECV_PORT` *(see note)* | visitor's text |
+| Python (local) → Processing | **OSC / UDP** | Processing OSC input port | smoothed emotion scores |
 | Python (local) → Magenta host | **WebSocket** | `9002` | weighted emotion prompts |
 | Magenta host → Browser | **WebSocket** | `9004` | raw float32 PCM @ 48 kHz |
 | Browser → Processing | **virtual audio cable** | — | audio for analysis |
@@ -105,7 +127,7 @@ Two WebSocket servers run on the host:
 
 ### Tech stack at a glance
 
-- **Processing** — P3D renderer, Sound library (JSyn `AudioIn`, `Amplitude`, `FFT`)
+- **Processing** — P2D renderer, Sound library (JSyn `AudioIn`, `Amplitude`, `FFT`)
 - **Python** — `transformers` + `torch` (GoEmotions), `python-osc`, `websocket-client`
 - **Magenta host** — Magenta RT (large), JAX/CUDA, Gradio, `websockets`, `nest_asyncio`
 - **Browser** — Web Audio API, AudioWorklet ring buffer
@@ -221,7 +243,7 @@ In the Lightning Studio, open the **Ports** panel and add **`9002`** (prompts) a
 https://<studio-id>-9002.lightning.ai   →  wss://<studio-id>-9002.lightning.ai
 https://<studio-id>-9004.lightning.ai   →  wss://<studio-id>-9004.lightning.ai
 ```
-- Put the **:9002** `wss://` URL into `prompt_ws_url` in local `detect_emotion.py` (step 2).
+- Put the **:9002** `wss://` URL into `LIGHTNING_WS_URL` in local `detect_emotion.py` (step 2).
 - Put the **:9004** `wss://` URL into the browser audio player.
 
 When the inference notebook is running you should see both servers come up:
@@ -263,7 +285,7 @@ Before launching, open `sound/detect_emotion.py` and check the configuration blo
 ```python
   server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", OSC_RECV_PORT), disp)
 ```
-- `prompt_ws_url` — the **:9002** Lightning WebSocket URL from step 1.6.
+- `LIGHTNING_WS_URL` — the **:9002** Lightning WebSocket URL from step 1.6.
 Run it:
 ```bash
 python sound/detect_emotion.py
@@ -271,7 +293,59 @@ python sound/detect_emotion.py
 You should see `Model loaded.` and `EmotionSmoother initialized.`
  
 ---
-### 3. Audio routing — so Processing can analyze the music
+
+### 3. Processing environment — interface and visuals
+
+Install **Processing 4** and open the sketch located in the `processing/` folder.
+
+From **Sketch → Import Library → Manage Libraries**, install:
+
+* **Sound** — used for audio input, amplitude analysis, and FFT.
+* **oscP5** — used for OSC communication between Processing and the local Python pipeline.
+
+Before running the sketch, check the following configuration:
+
+1. Open `Osc.pde` and verify that the OSC port used to send the visitor's text matches `OSC_RECV_PORT` in `sound/detect_emotion.py`.
+
+2. Verify that the port used by Processing to receive emotion values matches the OSC output port configured in the Python pipeline.
+
+3. List the available audio devices by temporarily adding:
+
+   ```java
+   Sound.list();
+   ```
+
+   Run the sketch once and check the device indices printed in the Processing console.
+
+4. Set the virtual audio input used by the installation wherever `inputDevice(...)` is configured:
+
+   ```java
+   Sound sound = new Sound(this);
+   sound.inputDevice(AUDIO_INPUT_INDEX);
+   ```
+
+   Replace `AUDIO_INPUT_INDEX` with the index corresponding to:
+
+   * `CABLE Output` on Windows;
+
+   * `BlackHole 2ch` on macOS.
+
+   > Audio device indices are machine-specific. Always check them again when running the installation on a different computer.
+
+5. Run the main Processing sketch. The application should open in the **Disclaimer** state.
+
+Use the `DevMode` overlay to verify that:
+
+* the installation moves correctly between states;
+* OSC emotion values are being received;
+* the `Audio amp:` value reacts when music is playing;
+* the frame rate remains stable.
+
+If the sketch opens correctly but `Audio amp:` remains at `0.000`, continue with the audio-routing configuration in the following section.
+
+---
+
+### 4. Audio routing — so Processing can analyze the music
 
 The music is generated remotely and played in your **browser**. Processing needs to *analyze* that same audio (for the FFT-driven particles) **while you still hear it**. A virtual audio device duplicates the browser's output into an input that Processing can read.
 
@@ -339,27 +413,26 @@ Type a feeling or a secret in the **Input** state → emotion is detected → th
 | `LineUnavailableException` on second input | audio line re-opened per state cycle | Open the input line **once** and keep it open for the app's lifetime |
 
 ---
-
 ## Project Structure
-
-```
+```text
 Cathartic/
-├── processing/            # Processing sketch (P3D)
-│   ├── AudioManager.pde   # mic/line input, amplitude + FFT analysis
-│   ├── ParticleSystem.pde # audio-reactive particle field
-│   ├── States.pde         # Disclaimer → Input → Particles → Thanks
-│   ├── Visuals.pde        # rendering
-│   ├── Config.pde         # tunable constants
-│   ├── Osc.pde            # sends typed text via OSC
-│   └── DevMode.pde        # live diagnostics overlay
-├── sound/                 # local Python pipeline
-│   ├── detect_emotion.py  # OSC server + GoEmotions
-│   ├── emotion_smoother.py# EmotionSmoother (ramping + dispatch)
+├── processing/               # Processing sketch (P2D)
+│   ├── AudioManager.pde      # mic/line input, amplitude + FFT analysis
+│   ├── ParticleSystem.pde    # audio-reactive particle field
+│   ├── States.pde            # Disclaimer → Input → Particles → Thanks
+│   ├── Visuals.pde           # main sketch setup, rendering, and initialization
+│   ├── Config.pde            # tunable constants
+│   ├── Osc.pde               # OSC communication with the local Python pipeline
+│   ├── DevMode.pde           # live diagnostics overlay
+│   ├── InputHandler.pde      # manages the visitor's text input and editing
+│   └── StateMachine.pde      # controls state transitions and shared state behaviour 
+├── sound/                    # local Python pipeline
+│   ├── detect_emotion.py     # OSC server + GoEmotions
+│   ├── emotion_smoother.py   # EmotionSmoother (ramping + dispatch)
 │   └── emotions_to_prompt.py # EMOTION_PROMPTS mapping
-├── setup.ipynb            # Lightning: builds the Magenta RT environment (run first)
-└── inference.ipynb        # Lightning: Magenta RT generation + WS servers (:9002 / :9004)
+├── setup.ipynb               # Lightning: builds the Magenta RT environment (run first)
+└── inference.ipynb           # Lightning: Magenta RT generation + WS servers (:9002 / :9004)
 ```
-
 ---
 
 ## Credits

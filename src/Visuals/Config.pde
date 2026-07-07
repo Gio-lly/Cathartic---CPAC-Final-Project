@@ -14,7 +14,6 @@ static class Config {
   static final int NUM_STATES       = 4;
 
   // Timing (ms)
-  static int DISCLAIMER_DURATION    = 5000;   // disclaimer duration
   static int PARTICLES_DURATION     = 60000*2;  // particles duration (from Python via OSC)
   static int THANKS_FADE_IN         = 1500*2; // fade-in "Thank you."
   static int THANKS_HOLD            = 2000*2; // "Thank you." duration
@@ -23,8 +22,6 @@ static class Config {
 
   // Colors
   static int BG_COLOR               = 0;               // black
-  static int TEXT_COLOR             = 0xFFFFFFFF;      // white
-  static int PARTICLE_BASE_COLOR    = 0xFFFFFFFF;
   static int DISCLAIMER_TEXT_COLOR  = 0xFFAAAAAA;      // light grey
 
   // Text
@@ -107,7 +104,7 @@ static class Config {
   // Amplitude level considered full volume (upper bound for normalization)
   static float  VOL_MAX               = 0.1;
   
-  // Kick-driven force impulse
+  // Transient-driven force impulse
   // Extra force added to particles on each detected kick (scales with kick strength)
   static float  FORCE_KICK_BOOST      = 20.0/15; // 50
   // Safety ceiling: max force multiplier relative to FORCE_GAIN_BASE
@@ -115,20 +112,16 @@ static class Config {
   // How quickly the kick force impulse decays back to baseline each frame (0..1)
   static float  FORCE_DECAY           = 0.10;
   
-  // Kick envelope detector
-  // High-pass cutoff for kick band isolation (Hz) — filters out DC / sub rumble
-  static float  KICK_HP               = 20.0;
-  // Low-pass cutoff for kick band isolation (Hz) — keeps only bass transients
-  static float  KICK_LP               = 140.0;
+  // Adaptive amplitude-transient detector
   // Envelope attack speed: how fast the follower rises on a transient (0..1)
   static float  ENV_ATK               = 0.55;
   // Envelope release speed: how fast the follower falls after a transient (0..1)
   static float  ENV_REL               = 0.08;
   // EWMA smoothing for adaptive baseline mean/variance (lower = slower adaptation)
   static float  BASE_ALPHA            = 0.01;
-  // Z-score threshold above which a discrete kick event is fired
+  // Z-score threshold above which a transient event is triggered
   static float  Z_THRESH              = 0.8;
-  // Lockout period after a kick fires — prevents double-triggers (milliseconds)
+  // Lockout period after a transient is triggered — prevents double-triggers (milliseconds)
   static int    REFRACTORY_MS         = 500; // 100
   // Z-score floor below which continuous kEnv is treated as zero (dead zone)
   static float  Z_FOLLOW_FLOOR        = 0.2;
@@ -138,24 +131,12 @@ static class Config {
   // Visuals
   // Particle stroke weight at rest (no kick)
   static float  BASE_STROKE_W         = 0.8/4; // 0.8
-  // Particle stroke weight target during a strong kick envelope
-  static float  KICK_STROKE_W         = BASE_STROKE_W; 
-  // Smoothing speed for stroke weight transitions (0..1)
-  static float  W_FOLLOW              = 0.18;
   // Particle brightness at rest, HSB scale 0→100
   static float  BASE_LUM              = 100.0;
-  // Particle brightness target during a strong kick envelope, HSB scale 0→100
-  static float  KICK_LUM              = 100.0;
-  // Smoothing speed for brightness transitions (0..1)
-  static float  L_FOLLOW              = 0.10;
-  // Particle hue, HSB scale 0→360 (0 = white/grey when saturation is 0)
-  static float  PARTICLE_HUE          = 0.0;
-  // Particle saturation, HSB scale 0→100 (0 = greyscale)
-  static float  PARTICLE_SAT          = 0.0;
   // Particle trasparancy
-  static float  PARTICLE_TRASP        = 160.0;
+  static float  PARTICLE_TRASP        = 160.0*10;
   // Particle smooth transitions vs not black background
-  static float  PARTICLE_PERMANENCE   = 30.0;
+  static float  PARTICLE_PERMANENCE   = 30.0*3;
 
   // Color gradient drift
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0
@@ -185,13 +166,10 @@ static class Config {
     "I wished happy birthday to a friend I love who has cancer, and my heart breaks knowing she won't be probably here next Christmas",
     "I wish I had a family, children, a partner, lots of people and warmth around me. To eat together, to feel like family. Instead I feel alone, I'm tired, tired of the wrong relationships, tired of facing life by myself",
     "I transitioned and I regret it", // remorse, sadness
-    "I had an amazing job offer overseas that I didn't accept and I regret it every day", // remorse, sadness, disappointment
+    //"I had an amazing job offer overseas that I didn't accept and I regret it every day", // remorse, sadness, disappointment
     "I lie to my therapist because I'm afraid of her judgment. I know it's stupid. But I'm scared.", // fear
     "I'm married, but the homosexual side of me that was always inside has finally emerged. And I love it. And I feel caged.",
-    "I'm a teacher and I'm attracted to one of my students",
     "My girlfriend is always sad. It's starting to affect me. I try to distance myself and I feel happy when I'm away from her. But I'm afraid to break up with her because of how she might react",
     "I'm pregnant and I'm terrified of my future",
-    "I love my husband but I want to sleep with other men",
-    "I wish I had a family, children, a partner, lots of people and warmth around me. To eat together, to feel like family. Instead I feel alone, I'm tired, tired of the wrong relationships, tired of facing life by myself"
   };
 }

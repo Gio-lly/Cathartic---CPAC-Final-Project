@@ -29,7 +29,6 @@
   // OSC
   OscP5 oscTextSender;
   OscP5 oscEmotionsReceiver;
-  OscP5 audioDataReceiver;
   NetAddress pythonLocation;
   
   // Hash map to store emotions
@@ -37,11 +36,12 @@
 
 // Application SETUP
   void setup() {
-    size(1280, 720, P2D); 
-    pixelDensity(2); 
-    
+    fullScreen(P2D, 1);
+    pixelDensity(displayDensity());
+    noCursor();
+
     smooth(8);
-    frameRate(60);
+    frameRate(30);
     textMode(MODEL);
     colorMode(RGB, 255);
   
