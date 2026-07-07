@@ -36,7 +36,7 @@
 
 // Application SETUP
   void setup() {
-    fullScreen(P2D, 2);
+    fullScreen(P2D, 1);
     pixelDensity(displayDensity());
     noCursor();
 
