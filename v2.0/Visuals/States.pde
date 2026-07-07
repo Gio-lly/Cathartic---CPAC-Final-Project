@@ -150,10 +150,10 @@ class DisclaimerState extends BaseState {
         inputHandler.backspace();
       } else if (key == DELETE) {
         inputHandler.clear();
-      } else if (key >= 32 && key < 127 && key != '<' && key != '0') {  
+      } else if (key >= 32 && key < 127 && key != '<' && (key < '0' || key > '9')) {
         inputHandler.append((char) key);
         keyEffect.play();
-      } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<' && key != '0') {
+      } else if (key != CODED && key >= 32 && key != BACKSPACE && key != DELETE && key != ENTER && key != RETURN && key != '<' && (key < '0' || key > '9')) {
         inputHandler.append((char) key);
         keyEffect.play();
       }

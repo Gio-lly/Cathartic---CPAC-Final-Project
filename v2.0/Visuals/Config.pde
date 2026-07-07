@@ -155,7 +155,7 @@ static class Config {
   // Particle trasparancy
   static float  PARTICLE_TRASP        = 160.0;
   // Particle smooth transitions vs not black background
-  static float  PARTICLE_PERMANENCE   = 30.0;
+  static float  PARTICLE_PERMANENCE   = 30.0*3;
 
   // Color gradient drift
   // Speed (px/frame) at which the spatial color gradient drifts when emotionalEnergy = 0

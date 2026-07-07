@@ -37,11 +37,12 @@
 
 // Application SETUP
   void setup() {
-    size(1280, 720, P2D); 
-    pixelDensity(2); 
-    
+    fullScreen(P2D, 2);
+    pixelDensity(displayDensity());
+    noCursor();
+
     smooth(8);
-    frameRate(60);
+    frameRate(30);
     textMode(MODEL);
     colorMode(RGB, 255);
   
