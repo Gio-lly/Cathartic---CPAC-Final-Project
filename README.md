@@ -4,6 +4,8 @@
 
 *CPAC — Creative Programming and Computing, Final Project. Music and Acoustic Engineering.*
 
+![Architecture](images/demo_gif.gif)
+
 ## Index
 * [The Project](#the-project)
 * [How it works](#how-it-works-technology)
