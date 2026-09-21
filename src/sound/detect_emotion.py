@@ -27,6 +27,7 @@ from pythonosc import dispatcher, osc_server, udp_client
 from transformers import pipeline
 
 from emotion_smoother import EmotionSmoother
+from translate_italian_prompt import translate_it_to_en
 
 # ----------------------------------------------------------------------------
 # Configuration
@@ -36,6 +37,17 @@ LIGHTNING_WS_URL = "wss://9002-01kp66x818nvqtvyvcf9bkr5ze.cloudspaces.litng.ai" 
 OSC_IP = "127.0.0.1"
 OSC_SEND_PORT = 9000   # Smoothed emotion values -> Processing (visuals)
 OSC_RECV_PORT = 12001  # Incoming text prompts from Processing
+
+# Set to True if Processing sends the visitor's text in Italian: it is then
+# translated to English (opus-mt-it-en via CTranslate2, see
+# translate_italian_prompt.py) before being scored by the GoEmotions
+# classifier below, which only understands English.
+TRANSLATE_FROM_ITALIAN = True
+
+# Set to True to log every [WS] connection/send event to Lightning.ai
+# (noisy: a retry line every 3s while disconnected, plus one line per
+# prompt send). Off by default to keep the console clean.
+VERBOSE_WS_LOGS = False
 
 # One full emotion pulse plays out as three phases, back to back:
 #   ascent (rises to the target) -> hold (sits idle at the peak) -> descent
@@ -64,7 +76,8 @@ emotion_classifier = pipeline(
     "text-classification",
     model=MODEL_NAME,
     return_all_scores=True,
-    top_k=None
+    top_k=None,
+    device="cpu"  # MPS gives broken/near-neutral scores for this model on Apple Silicon
 )
 print("Model loaded.")
 
@@ -97,7 +110,8 @@ smoother_lightning = EmotionSmoother(
     idle_rate=DESCENT_RATE,
     idle_timeout=IDLE_TIMEOUT,
     prompt_ws_url=LIGHTNING_WS_URL,
-    prompt_interval= 1.5  # Just under Magenta's 2s chunk length, so each new chunk can start with a fresh prompt
+    prompt_interval= 1.5,  # Just under Magenta's 2s chunk length, so each new chunk can start with a fresh prompt
+    verbose_ws=VERBOSE_WS_LOGS
 )
 smoother_lightning.start()
 
@@ -108,7 +122,7 @@ def analyze_emotions(text):
     """Run the GoEmotions classifier on `text` and return {label: score}."""
     scores = emotion_classifier(text)[0]
     scores = {d["label"]: round(float(d["score"]), 2) for d in scores}
-    print(f"         > Rounded Scores: {scores}")
+    #print(f"         > Rounded Scores: {scores}")
     return scores
 
 # ----------------------------------------------------------------------------
@@ -118,6 +132,10 @@ def osc_text_handler(*args):
     """Handle an incoming `/text` OSC message: classify and forward it."""
     text = args[1]
     print(f"[Server] Received: '{text}'")
+
+    if TRANSLATE_FROM_ITALIAN:
+        text = translate_it_to_en(text)
+
     new_emotions = analyze_emotions(text)
 
     smoother.set_target(new_emotions)
@@ -133,6 +151,9 @@ def osc_text_handler(*args):
             print(f"[FLUSH] Failed to send flush signal: {e}")
 
     top = sorted(new_emotions.items(), key=lambda x: x[1], reverse=True)[:2]
+    if TRANSLATE_FROM_ITALIAN:
+        print(f"         > Translated: '{text}'")
+    print(f"         > Detected emotions: {new_emotions}")
     print(f"         > Targets: {top}")
 
 # ----------------------------------------------------------------------------

@@ -36,7 +36,7 @@ class EmotionSmoother:
     # Setup
     # ------------------------------------------------------------------
     def __init__(self, client, active_rate=2.0, idle_rate=0.1, idle_timeout=5.0,
-                 prompt_ws_url=None, prompt_interval=2.0):
+                 prompt_ws_url=None, prompt_interval=2.0, verbose_ws=False):
         """
         client: OSC client used to send smoothed values to Processing, or
                 None if this instance only sends prompts to Lightning.ai.
@@ -46,9 +46,13 @@ class EmotionSmoother:
         prompt_ws_url (str): WebSocket URL of the Lightning.ai endpoint, if
                               this instance should send music prompts.
         prompt_interval (float): Minimum seconds between prompt sends.
+        verbose_ws (bool): Log every [WS] connection/send event (noisy: a
+                            retry line every 3s while disconnected, plus one
+                            line per prompt send). Off by default.
         """
         self.client = client
         self.prompt_interval = prompt_interval
+        self.verbose_ws = verbose_ws
         self.fps = 30               # Update rate
         self.dt = 1.0 / self.fps    # Time per frame
         self.running = True
@@ -87,12 +91,15 @@ class EmotionSmoother:
         """Block until a WebSocket connection to self.ws_url succeeds."""
         while True:
             try:
-                print(f"[WS] Connecting to {self.ws_url}...")
+                if self.verbose_ws:
+                    print(f"[WS] Connecting to {self.ws_url}...")
                 self.ws = websocket.create_connection(self.ws_url)
-                print("[WS] Connected.")
+                if self.verbose_ws:
+                    print("[WS] Connected.")
                 return
             except Exception as e:
-                print(f"[WS] Connection error: {e}, retrying in 3s...")
+                if self.verbose_ws:
+                    print(f"[WS] Connection error: {e}, retrying in 3s...")
                 time.sleep(3)
 
     def _reconnect_ws(self):
@@ -146,9 +153,11 @@ class EmotionSmoother:
         if prompts:
             try:
                 self.ws.send(json.dumps(prompts))
-                print(f"[WS] Sent: {prompts}")
+                if self.verbose_ws:
+                    print(f"[WS] Sent: {prompts}")
             except Exception as e:
-                print(f"[WS] Send error: {e}")
+                if self.verbose_ws:
+                    print(f"[WS] Send error: {e}")
                 self.ws = None  # Force a reconnect on the next cycle
                 threading.Thread(target=self._reconnect_ws, daemon=True).start()
 
